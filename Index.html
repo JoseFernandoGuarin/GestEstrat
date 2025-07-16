@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión Estratégica Lechera</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <title>Sistema de Gestión Estratégica Lechera - Manual de Usuario</title>
     <style>
         * {
             margin: 0;
@@ -14,79 +13,73 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f9fafb;
-            color: #1f2937;
-            line-height: 1.6;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #059669, #047857);
-            color: white;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .header h1 {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-
-        .header p {
-            color: #d1fae5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 1.5rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
-        .tabs-container {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
-            overflow-x: auto;
+        .header {
+            background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
         }
 
         .tabs {
             display: flex;
-            border-bottom: 1px solid #e5e7eb;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            overflow-x: auto;
+            flex-wrap: wrap;
         }
 
         .tab {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
+            padding: 15px 25px;
             background: none;
             border: none;
-            color: #6b7280;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
         }
 
         .tab:hover {
-            color: #374151;
-            background-color: #f9fafb;
+            background: #e9ecef;
+            color: #333;
         }
 
         .tab.active {
-            color: #059669;
-            background-color: #ecfdf5;
-            border-bottom-color: #059669;
-        }
-
-        .tab-icon {
-            margin-right: 0.5rem;
+            color: #2E7D32;
+            border-bottom-color: #2E7D32;
+            background: white;
         }
 
         .tab-content {
             display: none;
+            padding: 30px;
         }
 
         .tab-content.active {
@@ -95,397 +88,370 @@
 
         .grid {
             display: grid;
-            gap: 1rem;
+            gap: 20px;
         }
 
-        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .grid-cols-1 { grid-template-columns: 1fr; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
 
-        @media (min-width: 768px) {
-            .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .md\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .md\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        @media (max-width: 1024px) {
+            .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
         }
 
-        @media (min-width: 1024px) {
-            .lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-
-        @media (min-width: 1280px) {
-            .xl\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .xl\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
-
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 1rem;
+        @media (max-width: 640px) {
+            .grid-cols-4,
+            .grid-cols-2 { grid-template-columns: 1fr; }
         }
 
         .kpi-card {
             background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #2E7D32;
         }
 
         .kpi-header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
         }
 
         .kpi-title {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #6b7280;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
         }
 
         .kpi-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-top: 0.25rem;
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
         }
 
-        .kpi-value.green { color: #059669; }
-        .kpi-value.blue { color: #2563eb; }
-        .kpi-value.purple { color: #7c3aed; }
-        .kpi-value.yellow { color: #d97706; }
-        .kpi-value.red { color: #dc2626; }
-        .kpi-value.orange { color: #ea580c; }
+        .kpi-value.blue { color: #1976D2; }
+        .kpi-value.green { color: #2E7D32; }
+        .kpi-value.purple { color: #7B1FA2; }
+        .kpi-value.orange { color: #F57C00; }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
 
         .input-group {
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
         }
 
         .input-label {
             display: block;
-            font-size: 0.875rem;
+            margin-bottom: 5px;
             font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.25rem;
+            color: #555;
+            font-size: 14px;
         }
 
         .input-field {
             width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            transition: border-color 0.2s;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
         }
 
         .input-field:focus {
             outline: none;
-            border-color: #059669;
-            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+            border-color: #2E7D32;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
         }
 
         .chart-container {
             background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            margin-bottom: 1rem;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .chart-title {
-            font-size: 1.125rem;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: #1f2937;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
         }
 
         .chart-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
+            margin-bottom: 12px;
         }
 
         .chart-label {
-            font-size: 0.875rem;
-            color: #6b7280;
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
         }
 
         .chart-bar-container {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 10px;
         }
 
         .chart-bar {
-            width: 8rem;
-            height: 0.5rem;
-            background-color: #e5e7eb;
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-
-        .chart-bar-fill {
-            height: 100%;
-            background-color: #059669;
-            border-radius: 9999px;
-            transition: width 0.3s ease;
+            height: 8px;
+            background: linear-gradient(90deg, #2E7D32, #4CAF50);
+            border-radius: 4px;
+            min-width: 4px;
+            transition: width 0.5s ease;
         }
 
         .chart-value {
-            font-size: 0.875rem;
+            font-size: 12px;
             font-weight: 500;
-            width: 6rem;
+            color: #333;
+            min-width: 100px;
             text-align: right;
-        }
-
-        .ai-panel {
-            background: linear-gradient(135deg, #eff6ff, #e0e7ff);
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .ai-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .ai-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-        }
-
-        .ai-button {
-            padding: 0.5rem 1rem;
-            background-color: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .ai-button:hover {
-            background-color: #4338ca;
-        }
-
-        .ai-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .ai-section {
-            background: white;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .ai-section h4 {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 0.5rem;
-        }
-
-        .ai-section.green {
-            background-color: #f0fdf4;
-        }
-
-        .ai-section.green h4 {
-            color: #166534;
-        }
-
-        .ai-section.yellow {
-            background-color: #fffbeb;
-        }
-
-        .ai-section.yellow h4 {
-            color: #92400e;
-        }
-
-        .ai-section.blue {
-            background-color: #eff6ff;
-        }
-
-        .ai-section.blue h4 {
-            color: #1e40af;
-        }
-
-        .ai-list {
-            list-style-type: disc;
-            list-style-position: inside;
-            space-y: 0.25rem;
-        }
-
-        .ai-list.green {
-            color: #166534;
-        }
-
-        .ai-list.yellow {
-            color: #92400e;
-        }
-
-        .ai-list.blue {
-            color: #1e40af;
         }
 
         .analysis-grid {
             display: flex;
             justify-content: space-between;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
         }
 
-        .space-y-6 > * + * {
-            margin-top: 1.5rem;
+        .analysis-grid:last-child {
+            border-bottom: none;
         }
 
-        .space-y-4 > * + * {
-            margin-top: 1rem;
+        .ai-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            margin-bottom: 30px;
         }
 
-        .space-y-2 > * + * {
-            margin-top: 0.5rem;
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .mb-6 { margin-bottom: 1.5rem; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-
-        .text-sm { font-size: 0.875rem; }
-        .font-medium { font-weight: 500; }
-        .font-bold { font-weight: bold; }
-
-        .max-h-96 {
-            max-height: 24rem;
-            overflow-y: auto;
+        .ai-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
         }
 
-        .border-b {
-            border-bottom: 1px solid #e5e7eb;
+        .ai-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
-        .pb-2 {
-            padding-bottom: 0.5rem;
+        .ai-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
         }
 
-        .pt-2 {
-            padding-top: 0.5rem;
+        .ai-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        .text-green-600 { color: #059669; }
-        .text-red-600 { color: #dc2626; }
-        .text-blue-600 { color: #2563eb; }
+        .ai-results {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            color: #333;
+            margin-top: 20px;
+        }
 
-        .border-l-4 {
+        .recommendation {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
             border-left: 4px solid;
         }
 
-        .border-blue-500 { border-color: #3b82f6; }
-        .border-green-500 { border-color: #10b981; }
+        .recommendation.success {
+            background: #f1f8e9;
+            border-left-color: #4caf50;
+        }
 
-        .pl-4 { padding-left: 1rem; }
+        .recommendation.warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+
+        .recommendation.info {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .recommendation-text {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
 
         .scenario-card {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
 
         .scenario-card.optimistic {
-            background-color: #eff6ff;
+            background: #f1f8e9;
+            border-left: 4px solid #4caf50;
         }
 
         .scenario-card.pessimistic {
-            background-color: #fef2f2;
+            background: #ffebee;
+            border-left: 4px solid #f44336;
         }
 
         .scenario-title {
             font-weight: 600;
-            margin-bottom: 0.5rem;
+            margin-bottom: 10px;
         }
 
-        .scenario-title.optimistic {
-            color: #1e40af;
+        .scenario-title.optimistic { color: #2e7d32; }
+        .scenario-title.pessimistic { color: #c62828; }
+
+        .space-y-2 > * + * { margin-top: 8px; }
+        .space-y-4 > * + * { margin-top: 16px; }
+        .space-y-6 > * + * { margin-top: 24px; }
+
+        .mb-6 { margin-bottom: 24px; }
+
+        .text-sm { font-size: 14px; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+
+        .text-green-600 { color: #16a085; }
+        .text-red-600 { color: #e74c3c; }
+        .text-blue-600 { color: #3498db; }
+        .text-orange-600 { color: #f39c12; }
+        .text-gray-600 { color: #7f8c8d; }
+        .text-gray-800 { color: #2c3e50; }
+
+        .border-l-4 { border-left: 4px solid; }
+        .border-blue-500 { border-left-color: #3498db; }
+        .border-green-500 { border-left-color: #27ae60; }
+        .pl-4 { padding-left: 16px; }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
         }
 
-        .scenario-title.pessimistic {
-            color: #991b1b;
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid;
+        }
+
+        .alert.success {
+            background: #f1f8e9;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .alert.warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+            color: #ef6c00;
+        }
+
+        .alert.info {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+            color: #1565c0;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Sistema de Gestión Estratégica Lechera</h1>
-        <p>San Pedro de los Milagros, Antioquia - Colombia</p>
-    </div>
-
     <div class="container">
-        <!-- Navegación por pestañas -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab active" onclick="showTab('datos_generales')">
-                    <span class="tab-icon">📊</span>
-                    Datos Generales
-                </button>
-                <button class="tab" onclick="showTab('ingresos')">
-                    <span class="tab-icon">📈</span>
-                    Ingresos
-                </button>
-                <button class="tab" onclick="showTab('gastos')">
-                    <span class="tab-icon">💰</span>
-                    Gastos
-                </button>
-                <button class="tab" onclick="showTab('inversiones')">
-                    <span class="tab-icon">🏗️</span>
-                    Inversiones
-                </button>
-                <button class="tab" onclick="showTab('resultados')">
-                    <span class="tab-icon">📋</span>
-                    Resultados
-                </button>
-                <button class="tab" onclick="showTab('analisis')">
-                    <span class="tab-icon">🤖</span>
-                    Análisis IA
-                </button>
-            </div>
+        <div class="header">
+            <h1>🐄 Gestión Estratégica Lechera</h1>
+            <p>Sistema integral para análisis y optimización de fincas lecheras</p>
         </div>
 
-        <!-- Datos Generales -->
-        <div id="datos_generales" class="tab-content active">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('parametros')">📊 Parámetros</button>
+            <button class="tab" onclick="showTab('ingresos')">💰 Ingresos</button>
+            <button class="tab" onclick="showTab('gastos')">💸 Gastos</button>
+            <button class="tab" onclick="showTab('inversiones')">🏗️ Inversiones</button>
+            <button class="tab" onclick="showTab('resultados')">📈 Resultados</button>
+            <button class="tab" onclick="showTab('analisis')">🤖 Análisis IA</button>
+        </div>
+
+        <!-- Parámetros Productivos -->
+        <div id="parametros" class="tab-content active">
             <div class="space-y-6">
-                <!-- KPIs principales -->
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-6">
+                <div class="grid grid-cols-4 mb-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Vacas en Producción</p>
-                                <p class="kpi-value green" id="kpi-vacas">114 cabezas</p>
+                                <p class="kpi-value blue" id="kpi-vacas">114 cabezas</p>
                             </div>
-                            <span>🐄</span>
+                            <span style="font-size: 24px;">🐄</span>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Área Total</p>
-                                <p class="kpi-value blue" id="kpi-area">125 hectáreas</p>
+                                <p class="kpi-value green" id="kpi-area">125 hectáreas</p>
                             </div>
-                            <span>🌾</span>
+                            <span style="font-size: 24px;">🌾</span>
                         </div>
                     </div>
                     <div class="kpi-card">
@@ -494,25 +460,24 @@
                                 <p class="kpi-title">Producción Anual</p>
                                 <p class="kpi-value purple" id="kpi-volumen">902,300 litros</p>
                             </div>
-                            <span>🥛</span>
+                            <span style="font-size: 24px;">🥛</span>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <p class="kpi-title">Precio Leche</p>
-                                <p class="kpi-value yellow" id="kpi-precio">$2,400/litro</p>
+                                <p class="kpi-title">Precio por Litro</p>
+                                <p class="kpi-value orange" id="kpi-precio">$2,400/litro</p>
                             </div>
-                            <span>💵</span>
+                            <span style="font-size: 24px;">💲</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2">
-                    <!-- Formulario de datos -->
+                <div class="grid grid-cols-2">
                     <div class="card">
-                        <h3 class="card-title">Datos Productivos</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <h3 class="card-title">Parámetros Productivos</h3>
+                        <div class="space-y-4">
                             <div class="input-group">
                                 <label class="input-label">Vacas en Producción</label>
                                 <input type="number" class="input-field" id="vacas" value="114" onchange="updateCalculations()">
@@ -522,42 +487,36 @@
                                 <input type="number" class="input-field" id="area" value="125" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Volumen Anual (L)</label>
+                                <label class="input-label">Volumen de leche anual (L)</label>
                                 <input type="number" class="input-field" id="volumen" value="902300" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Precio Leche ($/L)</label>
+                                <label class="input-label">Precio de la leche ($/L)</label>
                                 <input type="number" class="input-field" id="precio_leche" value="2400" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Número de Empleados</label>
+                                <label class="input-label">Número de empleados</label>
                                 <input type="number" class="input-field" id="empleados" value="7" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Número de Novillas</label>
+                                <label class="input-label">Número de novillas</label>
                                 <input type="number" class="input-field" id="novillas" value="101" onchange="updateCalculations()">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Gráficas -->
                     <div class="space-y-4">
                         <div class="chart-container" id="productividad-chart">
                             <h4 class="chart-title">Indicadores de Productividad</h4>
-                            <!-- Se llenará dinámicamente -->
+                            <div class="space-y-2" id="productividad-content">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
                         </div>
                         
                         <div class="card">
-                            <h4 class="chart-title">Información Adicional</h4>
-                            <div class="space-y-2">
-                                <div class="input-group">
-                                    <label class="input-label">Región</label>
-                                    <input type="text" class="input-field" id="region" value="San Pedro de los Milagros">
-                                </div>
-                                <div class="input-group">
-                                    <label class="input-label">Sistema de Producción</label>
-                                    <input type="text" class="input-field" id="sistema_produccion" value="Pastoreo">
-                                </div>
+                            <h4 class="chart-title">Benchmarking</h4>
+                            <div id="benchmarking" class="space-y-2 text-sm">
+                                <!-- Se llenará dinámicamente -->
                             </div>
                         </div>
                     </div>
@@ -568,14 +527,14 @@
         <!-- Ingresos -->
         <div id="ingresos" class="tab-content">
             <div class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mb-6">
+                <div class="grid grid-cols-4 mb-6">
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Ingresos Totales</p>
                                 <p class="kpi-value green" id="kpi-ingresos-totales">$2,443,520,000</p>
                             </div>
-                            <span>📈</span>
+                            <span style="font-size: 24px;">💰</span>
                         </div>
                     </div>
                     <div class="kpi-card">
@@ -584,46 +543,55 @@
                                 <p class="kpi-title">Venta de Leche</p>
                                 <p class="kpi-value blue" id="kpi-venta-leche">$2,165,520,000</p>
                             </div>
-                            <span>🥛</span>
+                            <span style="font-size: 24px;">🥛</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Venta de Animales</p>
+                                <p class="kpi-value purple" id="kpi-venta-animales">$156,000,000</p>
+                            </div>
+                            <span style="font-size: 24px;">🐄</span>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Otros Ingresos</p>
-                                <p class="kpi-value purple" id="kpi-otros-ingresos">$278,000,000</p>
+                                <p class="kpi-value orange" id="kpi-otros-ingresos">$122,000,000</p>
                             </div>
-                            <span>💰</span>
+                            <span style="font-size: 24px;">📋</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2">
+                <div class="grid grid-cols-2">
                     <div class="card">
-                        <h3 class="card-title">Ingresos Operativos</h3>
+                        <h3 class="card-title">Fuentes de Ingreso</h3>
                         <div class="space-y-4">
                             <div class="input-group">
-                                <label class="input-label">Venta de Leche ($/año)</label>
+                                <label class="input-label">Venta de leche ($/año)</label>
                                 <input type="number" class="input-field" id="venta_leche" value="2165520000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Venta de Animales ($/año)</label>
+                                <label class="input-label">Venta de animales ($/año)</label>
                                 <input type="number" class="input-field" id="venta_animales" value="156000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Venta de Estiércol ($/año)</label>
+                                <label class="input-label">Venta de estiércol ($/año)</label>
                                 <input type="number" class="input-field" id="venta_estiercol" value="12000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Otros Ingresos ($/año)</label>
+                                <label class="input-label">Otros ingresos ($/año)</label>
                                 <input type="number" class="input-field" id="otros_ingresos" value="0" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Cambio Stock Animales ($/año)</label>
+                                <label class="input-label">Cambio en stock de animales ($/año)</label>
                                 <input type="number" class="input-field" id="cambio_stock_animales" value="85000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Cambio Stock Alimentos ($/año)</label>
+                                <label class="input-label">Cambio en stock de alimentos ($/año)</label>
                                 <input type="number" class="input-field" id="cambio_stock_alimentos" value="25000000" onchange="updateCalculations()">
                             </div>
                         </div>
@@ -632,7 +600,9 @@
                     <div class="space-y-4">
                         <div class="chart-container" id="ingresos-chart">
                             <h4 class="chart-title">Composición de Ingresos</h4>
-                            <!-- Se llenará dinámicamente -->
+                            <div class="space-y-2" id="ingresos-content">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
                         </div>
                         
                         <div class="card">
@@ -649,42 +619,59 @@
         <!-- Gastos -->
         <div id="gastos" class="tab-content">
             <div class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mb-6">
+                <div class="grid grid-cols-4 mb-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Gastos Totales</p>
+                                <p class="kpi-value red" id="kpi-gastos-totales">$1,851,000,000</p>
+                            </div>
+                            <span style="font-size: 24px;">💸</span>
+                        </div>
+                    </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Gastos Básicos</p>
-                                <p class="kpi-value red" id="kpi-gastos-basicos">$1,447,000,000</p>
+                                <p class="kpi-value blue" id="kpi-gastos-basicos">$1,447,000,000</p>
                             </div>
-                            <span>💸</span>
+                            <span style="font-size: 24px;">🏭</span>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
                                 <p class="kpi-title">Gastos Adicionales</p>
-                                <p class="kpi-value orange" id="kpi-gastos-adicionales">$404,000,000</p>
+                                <p class="kpi-value purple" id="kpi-gastos-adicionales">$404,000,000</p>
                             </div>
-                            <span>📊</span>
+                            <span style="font-size: 24px;">📋</span>
                         </div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-header">
                             <div>
-                                <p class="kpi-title">Gastos Totales</p>
-                                <p class="kpi-value purple" id="kpi-gastos-totales">$1,851,000,000</p>
+                                <p class="kpi-title">Alimentos</p>
+                                <p class="kpi-value orange" id="kpi-alimentos">$865,000,000</p>
                             </div>
-                            <span>💰</span>
+                            <span style="font-size: 24px;">🌾</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2">
+                <div class="grid grid-cols-2">
                     <div class="card">
-                        <h3 class="card-title">Gastos Básicos</h3>
-                        <div class="space-y-4 max-h-96" style="overflow-y: auto;">
+                        <h3 class="card-title">Gastos Básicos Operativos</h3>
+                        <div class="space-y-4">
                             <div class="input-group">
-                                <label class="input-label">Mantenimiento Maquinaria</label>
+                                <label class="input-label">Alimentos Comprados</label>
+                                <input type="number" class="input-field" id="alimentos_comprados" value="865000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Energía</label>
+                                <input type="number" class="input-field" id="energia" value="72000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Mantenimiento Máquinas</label>
                                 <input type="number" class="input-field" id="mantenimiento_maquinas" value="45000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
@@ -692,60 +679,81 @@
                                 <input type="number" class="input-field" id="mantenimiento_instalaciones" value="65000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Alquiler de Máquinas</label>
-                                <input type="number" class="input-field" id="alquiler_maquinas" value="55000000" onchange="updateCalculations()">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Energía y Combustibles</label>
-                                <input type="number" class="input-field" id="energia" value="72000000" onchange="updateCalculations()">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Alimentos Comprados</label>
-                                <input type="number" class="input-field" id="alimentos_comprados" value="865000000" onchange="updateCalculations()">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Fertilizantes</label>
-                                <input type="number" class="input-field" id="correctivos_fertilizantes" value="35000000" onchange="updateCalculations()">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Productos Químicos</label>
-                                <input type="number" class="input-field" id="productos_quimicos" value="25000000" onchange="updateCalculations()">
-                            </div>
-                            <div class="input-group">
-                                <label class="input-label">Semillas</label>
-                                <input type="number" class="input-field" id="semillas" value="15000000" onchange="updateCalculations()">
+                                <label class="input-label">Sanidad Animal</label>
+                                <input type="number" class="input-field" id="salud" value="55000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
                                 <label class="input-label">Reproducción</label>
                                 <input type="number" class="input-field" id="reproduccion" value="35000000" onchange="updateCalculations()">
                             </div>
+                        </div>
+
+                        <h4 class="card-title" style="margin-top: 30px;">Gastos Adicionales</h4>
+                        <div class="space-y-4">
                             <div class="input-group">
-                                <label class="input-label">Sanidad</label>
-                                <input type="number" class="input-field" id="salud" value="55000000" onchange="updateCalculations()">
+                                <label class="input-label">Mano de Obra Fija</label>
+                                <input type="number" class="input-field" id="mano_obra_fija" value="168000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Consumibles</label>
-                                <input type="number" class="input-field" id="consumibles" value="45000000" onchange="updateCalculations()">
+                                <label class="input-label">Mano de Obra Temporal</label>
+                                <input type="number" class="input-field" id="mano_obra_temporal" value="35000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">BST</label>
-                                <input type="number" class="input-field" id="bst" value="48000000" onchange="updateCalculations()">
+                                <label class="input-label">Administración</label>
+                                <input type="number" class="input-field" id="administracion" value="96000000" onchange="updateCalculations()">
                             </div>
                             <div class="input-group">
-                                <label class="input-label">Impuestos</label>
-                                <input type="number" class="input-field" id="impuestos" value="42000000" onchange="updateCalculations()">
+                                <label class="input-label">Intereses Préstamos</label>
+                                <input type="number" class="input-field" id="intereses_prestamos" value="45000000" onchange="updateCalculations()">
                             </div>
                         </div>
                     </div>
 
                     <div class="space-y-4">
+                        <div class="chart-container" id="gastos-chart">
+                            <h4 class="chart-title">Principales Componentes de Gastos</h4>
+                            <div class="space-y-2" id="gastos-content">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+                        
                         <div class="card">
-                            <h3 class="card-title">Gastos Adicionales</h3>
-                            <div class="space-y-4">
-                                <div class="input-group">
-                                    <label class="input-label">Mano de Obra Fija</label>
-                                    <input type="number" class="input-field" id="mano_obra_fija" value="168000000" onchange="updateCalculations()">
-                                </div>
-                                <div class="input-group">
-                                    <label class="input-label">Mano de Obra Temporal</label>
-                                    <input type="number" class="input-field" id="mano_
+                            <h4 class="chart-title">Análisis de Costos</h4>
+                            <div id="gastos-analysis" class="space-y-2 text-sm">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inversiones -->
+        <div id="inversiones" class="tab-content">
+            <div class="space-y-6">
+                <div class="grid grid-cols-4 mb-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Inversión Total</p>
+                                <p class="kpi-value blue" id="kpi-inversion-total">$8,375,000,000</p>
+                            </div>
+                            <span style="font-size: 24px;">🏗️</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Tierra</p>
+                                <p class="kpi-value green" id="kpi-tierra">$5,625,000,000</p>
+                            </div>
+                            <span style="font-size: 24px;">🌾</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Animales</p>
+                                <p class="kpi-value purple" id="kpi-animales">$1,250,000,000</p>
+                            </div>
+                            
