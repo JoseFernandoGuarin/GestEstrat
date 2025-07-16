@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Estratégica Lechera</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #d1fae5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .tabs-container {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            background: none;
+            border: none;
+            color: #6b7280;
+        }
+
+        .tab:hover {
+            color: #374151;
+            background-color: #f9fafb;
+        }
+
+        .tab.active {
+            color: #059669;
+            background-color: #ecfdf5;
+            border-bottom-color: #059669;
+        }
+
+        .tab-icon {
+            margin-right: 0.5rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 1024px) {
+            .lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 1280px) {
+            .xl\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .xl\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kpi-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .kpi-value.green { color: #059669; }
+        .kpi-value.blue { color: #2563eb; }
+        .kpi-value.purple { color: #7c3aed; }
+        .kpi-value.yellow { color: #d97706; }
+        .kpi-value.red { color: #dc2626; }
+        .kpi-value.orange { color: #ea580c; }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+
+        .chart-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+
+        .chart-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .chart-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-bar {
+            width: 8rem;
+            height: 0.5rem;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            background-color: #059669;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        .chart-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            width: 6rem;
+            text-align: right;
+        }
+
+        .ai-panel {
+            background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .ai-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+        }
+
+        .ai-button {
+            padding: 0.5rem 1rem;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .ai-button:hover {
+            background-color: #4338ca;
+        }
+
+        .ai-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ai-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .ai-section h4 {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-section.green {
+            background-color: #f0fdf4;
+        }
+
+        .ai-section.green h4 {
+            color: #166534;
+        }
+
+        .ai-section.yellow {
+            background-color: #fffbeb;
+        }
+
+        .ai-section.yellow h4 {
+            color: #92400e;
+        }
+
+        .ai-section.blue {
+            background-color: #eff6ff;
+        }
+
+        .ai-section.blue h4 {
+            color: #1e40af;
+        }
+
+        .ai-list {
+            list-style-type: disc;
+            list-style-position: inside;
+            space-y: 0.25rem;
+        }
+
+        .ai-list.green {
+            color: #166534;
+        }
+
+        .ai-list.yellow {
+            color: #92400e;
+        }
+
+        .ai-list.blue {
+            color: #1e40af;
+        }
+
+        .analysis-grid {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 1rem;
+        }
+
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
+
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+
+        .text-sm { font-size: 0.875rem; }
+        .font-medium { font-weight: 500; }
+        .font-bold { font-weight: bold; }
+
+        .max-h-96 {
+            max-height: 24rem;
+            overflow-y: auto;
+        }
+
+        .border-b {
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .pb-2 {
+            padding-bottom: 0.5rem;
+        }
+
+        .pt-2 {
+            padding-top: 0.5rem;
+        }
+
+        .text-green-600 { color: #059669; }
+        .text-red-600 { color: #dc2626; }
+        .text-blue-600 { color: #2563eb; }
+
+        .border-l-4 {
+            border-left: 4px solid;
+        }
+
+        .border-blue-500 { border-color: #3b82f6; }
+        .border-green-500 { border-color: #10b981; }
+
+        .pl-4 { padding-left: 1rem; }
+
+        .scenario-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .scenario-card.optimistic {
+            background-color: #eff6ff;
+        }
+
+        .scenario-card.pessimistic {
+            background-color: #fef2f2;
+        }
+
+        .scenario-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .scenario-title.optimistic {
+            color: #1e40af;
+        }
+
+        .scenario-title.pessimistic {
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Sistema de Gestión Estratégica Lechera</h1>
+        <p>San Pedro de los Milagros, Antioquia - Colombia</p>
+    </div>
+
+    <div class="container">
+        <!-- Navegación por pestañas -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('datos_generales')">
+                    <span class="tab-icon">📊</span>
+                    Datos Generales
+                </button>
+                <button class="tab" onclick="showTab('ingresos')">
+                    <span class="tab-icon">📈</span>
+                    Ingresos
+                </button>
+                <button class="tab" onclick="showTab('gastos')">
+                    <span class="tab-icon">💰</span>
+                    Gastos
+                </button>
+                <button class="tab" onclick="showTab('inversiones')">
+                    <span class="tab-icon">🏗️</span>
+                    Inversiones
+                </button>
+                <button class="tab" onclick="showTab('resultados')">
+                    <span class="tab-icon">📋</span>
+                    Resultados
+                </button>
+                <button class="tab" onclick="showTab('analisis')">
+                    <span class="tab-icon">🤖</span>
+                    Análisis IA
+                </button>
+            </div>
+        </div>
+
+        <!-- Datos Generales -->
+        <div id="datos_generales" class="tab-content active">
+            <div class="space-y-6">
+                <!-- KPIs principales -->
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Vacas en Producción</p>
+                                <p class="kpi-value green" id="kpi-vacas">114 cabezas</p>
+                            </div>
+                            <span>🐄</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Área Total</p>
+                                <p class="kpi-value blue" id="kpi-area">125 hectáreas</p>
+                            </div>
+                            <span>🌾</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Producción Anual</p>
+                                <p class="kpi-value purple" id="kpi-volumen">902,300 litros</p>
+                            </div>
+                            <span>🥛</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Precio Leche</p>
+                                <p class="kpi-value yellow" id="kpi-precio">$2,400/litro</p>
+                            </div>
+                            <span>💵</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2">
+                    <!-- Formulario de datos -->
+                    <div class="card">
+                        <h3 class="card-title">Datos Productivos</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="input-group">
+                                <label class="input-label">Vacas en Producción</label>
+                                <input type="number" class="input-field" id="vacas" value="114" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Área de la Finca (ha)</label>
+                                <input type="number" class="input-field" id="area" value="125" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Volumen Anual (L)</label>
+                                <input type="number" class="input-field" id="volumen" value="902300" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Precio Leche ($/L)</label>
+                                <input type="number" class="input-field" id="precio_leche" value="2400" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Número de Empleados</label>
+                                <input type="number" class="input-field" id="empleados" value="7" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Número de Novillas</label>
+                                <input type="number" class="input-field" id="novillas" value="101" onchange="updateCalculations()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficas -->
+                    <div class="space-y-4">
+                        <div class="chart-container" id="productividad-chart">
+                            <h4 class="chart-title">Indicadores de Productividad</h4>
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="chart-title">Información Adicional</h4>
+                            <div class="space-y-2">
+                                <div class="input-group">
+                                    <label class="input-label">Región</label>
+                                    <input type="text" class="input-field" id="region" value="San Pedro de los Milagros">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Sistema de Producción</label>
+                                    <input type="text" class="input-field" id="sistema_produccion" value="Pastoreo">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingresos -->
+        <div id="ingresos" class="tab-content">
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mb-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Ingresos Totales</p>
+                                <p class="kpi-value green" id="kpi-ingresos-totales">$2,443,520,000</p>
+                            </div>
+                            <span>📈</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Venta de Leche</p>
+                                <p class="kpi-value blue" id="kpi-venta-leche">$2,165,520,000</p>
+                            </div>
+                            <span>🥛</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Otros Ingresos</p>
+                                <p class="kpi-value purple" id="kpi-otros-ingresos">$278,000,000</p>
+                            </div>
+                            <span>💰</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2">
+                    <div class="card">
+                        <h3 class="card-title">Ingresos Operativos</h3>
+                        <div class="space-y-4">
+                            <div class="input-group">
+                                <label class="input-label">Venta de Leche ($/año)</label>
+                                <input type="number" class="input-field" id="venta_leche" value="2165520000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Venta de Animales ($/año)</label>
+                                <input type="number" class="input-field" id="venta_animales" value="156000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Venta de Estiércol ($/año)</label>
+                                <input type="number" class="input-field" id="venta_estiercol" value="12000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Otros Ingresos ($/año)</label>
+                                <input type="number" class="input-field" id="otros_ingresos" value="0" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Cambio Stock Animales ($/año)</label>
+                                <input type="number" class="input-field" id="cambio_stock_animales" value="85000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Cambio Stock Alimentos ($/año)</label>
+                                <input type="number" class="input-field" id="cambio_stock_alimentos" value="25000000" onchange="updateCalculations()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="chart-container" id="ingresos-chart">
+                            <h4 class="chart-title">Composición de Ingresos</h4>
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="card">
+                            <h4 class="chart-title">Análisis de Ingresos</h4>
+                            <div id="ingresos-analysis" class="space-y-2 text-sm">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gastos -->
+        <div id="gastos" class="tab-content">
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mb-6">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Gastos Básicos</p>
+                                <p class="kpi-value red" id="kpi-gastos-basicos">$1,447,000,000</p>
+                            </div>
+                            <span>💸</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Gastos Adicionales</p>
+                                <p class="kpi-value orange" id="kpi-gastos-adicionales">$404,000,000</p>
+                            </div>
+                            <span>📊</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div>
+                                <p class="kpi-title">Gastos Totales</p>
+                                <p class="kpi-value purple" id="kpi-gastos-totales">$1,851,000,000</p>
+                            </div>
+                            <span>💰</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2">
+                    <div class="card">
+                        <h3 class="card-title">Gastos Básicos</h3>
+                        <div class="space-y-4 max-h-96" style="overflow-y: auto;">
+                            <div class="input-group">
+                                <label class="input-label">Mantenimiento Maquinaria</label>
+                                <input type="number" class="input-field" id="mantenimiento_maquinas" value="45000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Mantenimiento Instalaciones</label>
+                                <input type="number" class="input-field" id="mantenimiento_instalaciones" value="65000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Alquiler de Máquinas</label>
+                                <input type="number" class="input-field" id="alquiler_maquinas" value="55000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Energía y Combustibles</label>
+                                <input type="number" class="input-field" id="energia" value="72000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Alimentos Comprados</label>
+                                <input type="number" class="input-field" id="alimentos_comprados" value="865000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Fertilizantes</label>
+                                <input type="number" class="input-field" id="correctivos_fertilizantes" value="35000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Productos Químicos</label>
+                                <input type="number" class="input-field" id="productos_quimicos" value="25000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Semillas</label>
+                                <input type="number" class="input-field" id="semillas" value="15000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Reproducción</label>
+                                <input type="number" class="input-field" id="reproduccion" value="35000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Sanidad</label>
+                                <input type="number" class="input-field" id="salud" value="55000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Consumibles</label>
+                                <input type="number" class="input-field" id="consumibles" value="45000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">BST</label>
+                                <input type="number" class="input-field" id="bst" value="48000000" onchange="updateCalculations()">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Impuestos</label>
+                                <input type="number" class="input-field" id="impuestos" value="42000000" onchange="updateCalculations()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="card">
+                            <h3 class="card-title">Gastos Adicionales</h3>
+                            <div class="space-y-4">
+                                <div class="input-group">
+                                    <label class="input-label">Mano de Obra Fija</label>
+                                    <input type="number" class="input-field" id="mano_obra_fija" value="168000000" onchange="updateCalculations()">
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Mano de Obra Temporal</label>
+                                    <input type="number" class="input-field" id="mano_
