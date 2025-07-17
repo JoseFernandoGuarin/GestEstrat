@@ -27,12 +27,31 @@
             max-height: 24rem;
             overflow-y: auto;
         }
+        .pulse-save {
+            animation: pulse 0.5s ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50">
     <div class="bg-green-600 text-white p-6 shadow-lg">
         <h1 class="text-3xl font-bold">Sistema de Gestión Estratégica Lechera</h1>
         <p class="text-green-100 mt-2">San Pedro de los Milagros, Antioquia - Colombia</p>
+        
+        <!-- Barra de progreso -->
+        <div class="mt-4">
+            <div class="flex justify-between text-sm mb-2">
+                <span>Progreso del registro</span>
+                <span id="progress-text">0/6 secciones completadas</span>
+            </div>
+            <div class="w-full bg-green-400 rounded-full h-2">
+                <div id="progress-bar" class="bg-white h-2 rounded-full progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
     </div>
 
     <div class="container mx-auto px-4 py-6">
@@ -47,6 +66,42 @@
         <div id="tab-content">
             <!-- El contenido se generará dinámicamente -->
         </div>
+
+        <!-- Navegación inferior -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t p-4" id="bottom-navigation">
+            <div class="container mx-auto flex justify-between items-center">
+                <button
+                    id="prev-button"
+                    onclick="navigateTab(-1)"
+                    class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                >
+                    ← Anterior
+                </button>
+                
+                <div class="flex items-center space-x-4">
+                    <span id="save-status" class="text-sm text-gray-600"></span>
+                    <button
+                        id="save-button"
+                        onclick="saveCurrentData()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                        💾 Guardar
+                    </button>
+                </div>
+                
+                <button
+                    id="next-button"
+                    onclick="navigateTab(1)"
+                    class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                >
+                    Siguiente →
+                </button>
+            </div>
+        </div>
+
+        <!-- Espacio para la navegación fija -->
+        <div class="h-20"></div>
     </div>
 
     <script>
@@ -65,7 +120,7 @@
             ensilaje: 42,
             
             // Ingresos
-            venta_leche: 2165520000,
+            venta_leche: 0, // Se calculará automáticamente
             venta_animales: 156000000,
             venta_estiercol: 12000000,
             otros_ingresos: 0,
@@ -98,13 +153,24 @@
             // Inversiones
             inversiones_instalaciones: 850000000,
             inversiones_maquinaria: 650000000,
-            inversiones_animales: 1250000000,
-            inversiones_tierra: 5625000000
+            inversiones_animales: 0, // Se calculará automáticamente
+            inversiones_tierra: 0 // Se calculará automáticamente
         };
 
         let activeTab = 'datos_generales';
         let aiAnalysis = null;
         let isAnalyzing = false;
+        let savedSections = new Set();
+
+        // Definición de pestañas con orden
+        const tabs = [
+            { id: 'datos_generales', label: 'Datos Generales', icon: 'calculator', order: 0 },
+            { id: 'ingresos', label: 'Ingresos', icon: 'trending-up', order: 1 },
+            { id: 'gastos', label: 'Gastos', icon: 'dollar-sign', order: 2 },
+            { id: 'inversiones', label: 'Inversiones', icon: 'pie-chart', order: 3 },
+            { id: 'resultados', label: 'Resultados', icon: 'bar-chart-3', order: 4 },
+            { id: 'analisis', label: 'Análisis IA', icon: 'brain', order: 5 }
+        ];
 
         // Iconos usando Lucide
         const icons = {
@@ -132,8 +198,25 @@
             return new Intl.NumberFormat('es-CO').format(value);
         }
 
-        // Cálculos principales
+        // Función para calcular valores automáticamente
+        function calculateAutomaticValues() {
+            // Calcular venta de leche automáticamente
+            appData.venta_leche = appData.volumen * appData.precio_leche;
+            
+            // Calcular inversión en animales (vacas + novillas)
+            const precio_promedio_vaca = 3500000; // Precio promedio por vaca
+            const precio_promedio_novilla = 2800000; // Precio promedio por novilla
+            appData.inversiones_animales = (appData.vacas * precio_promedio_vaca) + (appData.novillas * precio_promedio_novilla);
+            
+            // Calcular inversión en tierra
+            appData.inversiones_tierra = appData.area * appData.valor_hectarea;
+        }
+
+        // Cálculos principales con valores actualizados
         function getCalculations() {
+            // Calcular valores automáticos primero
+            calculateAutomaticValues();
+            
             const leche_eq_kg = appData.volumen * 1.18;
             const total_ingresos = appData.venta_leche + appData.venta_animales + appData.venta_estiercol + 
                                  appData.otros_ingresos + appData.cambio_stock_animales + appData.cambio_stock_alimentos;
@@ -147,25 +230,102 @@
                                      appData.intereses_prestamos + appData.depreciacion_maquinaria + 
                                      appData.depreciacion_instalaciones;
             
+            const total_gastos = gastos_basicos + gastos_adicionales;
+            
             const total_inversiones = appData.inversiones_instalaciones + appData.inversiones_maquinaria + 
                                     appData.inversiones_animales + appData.inversiones_tierra;
             
-            const lucro = total_ingresos - (gastos_basicos + gastos_adicionales);
-            const retorno_capital = (lucro / total_inversiones) * 100;
-            const litros_por_empleado = appData.volumen / appData.empleados;
-            const costo_produccion_litro = (gastos_basicos + gastos_adicionales) / appData.volumen;
+            const lucro = total_ingresos - total_gastos;
+            const retorno_capital = total_inversiones > 0 ? (lucro / total_inversiones) * 100 : 0;
+            const litros_por_empleado = appData.empleados > 0 ? appData.volumen / appData.empleados : 0;
+            const costo_produccion_litro = appData.volumen > 0 ? total_gastos / appData.volumen : 0;
+            const margen_por_litro = appData.volumen > 0 ? lucro / appData.volumen : 0;
+            const productividad_por_vaca = appData.vacas > 0 ? appData.volumen / appData.vacas : 0;
+            const productividad_por_hectarea = appData.area > 0 ? appData.volumen / appData.area : 0;
 
             return {
                 leche_eq_kg,
                 total_ingresos,
                 gastos_basicos,
                 gastos_adicionales,
+                total_gastos,
                 total_inversiones,
                 lucro,
                 retorno_capital,
                 litros_por_empleado,
-                costo_produccion_litro
+                costo_produccion_litro,
+                margen_por_litro,
+                productividad_por_vaca,
+                productividad_por_hectarea
             };
+        }
+
+        // Navegación entre pestañas
+        function navigateTab(direction) {
+            const currentTabObj = tabs.find(tab => tab.id === activeTab);
+            const currentOrder = currentTabObj.order;
+            const newOrder = currentOrder + direction;
+            
+            if (newOrder >= 0 && newOrder < tabs.length) {
+                const newTab = tabs.find(tab => tab.order === newOrder);
+                if (newTab) {
+                    // Guardar datos antes de cambiar
+                    saveCurrentData();
+                    setActiveTab(newTab.id);
+                }
+            }
+        }
+
+        // Guardar datos de la sección actual
+        function saveCurrentData() {
+            savedSections.add(activeTab);
+            updateProgress();
+            
+            // Mostrar feedback visual
+            const saveButton = document.getElementById('save-button');
+            const saveStatus = document.getElementById('save-status');
+            
+            saveButton.classList.add('pulse-save');
+            saveStatus.textContent = '✅ Datos guardados';
+            saveStatus.style.color = '#10b981';
+            
+            setTimeout(() => {
+                saveButton.classList.remove('pulse-save');
+                saveStatus.textContent = '';
+            }, 2000);
+            
+            // Recalcular valores automáticamente
+            calculateAutomaticValues();
+            renderTabContent();
+        }
+
+        // Actualizar barra de progreso
+        function updateProgress() {
+            const progress = (savedSections.size / tabs.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-text').textContent = `${savedSections.size}/${tabs.length} secciones completadas`;
+        }
+
+        // Actualizar botones de navegación
+        function updateNavigationButtons() {
+            const currentTabObj = tabs.find(tab => tab.id === activeTab);
+            const currentOrder = currentTabObj.order;
+            
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+            
+            prevButton.disabled = currentOrder === 0;
+            
+            if (currentOrder === tabs.length - 1) {
+                nextButton.textContent = 'Finalizar';
+                nextButton.onclick = () => {
+                    saveCurrentData();
+                    alert('¡Registro completado! Todos los datos han sido guardados.');
+                };
+            } else {
+                nextButton.textContent = 'Siguiente →';
+                nextButton.onclick = () => navigateTab(1);
+            }
         }
 
         // Función para crear iconos
@@ -173,22 +333,26 @@
             return `<i data-lucide="${iconName}" class="w-${size/4} h-${size/4} ${className}"></i>`;
         }
 
-        // Componente InputField
-        function createInputField(label, value, onChange, type = 'number', min = 0, tooltip = '') {
+        // Componente InputField mejorado
+        function createInputField(label, value, field, type = 'number', min = 0, tooltip = '', readonly = false) {
             const tooltipHtml = tooltip ? `<span class="ml-1 text-gray-400" title="${tooltip}">${createIcon('info', 14, 'inline')}</span>` : '';
+            const readonlyAttr = readonly ? 'readonly' : '';
+            const readonlyClass = readonly ? 'bg-gray-100 cursor-not-allowed' : '';
             
             return `
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         ${label}
                         ${tooltipHtml}
+                        ${readonly ? '<span class="text-xs text-blue-600">(Calculado automáticamente)</span>' : ''}
                     </label>
                     <input
                         type="${type}"
                         value="${value}"
                         ${type === 'number' ? `min="${min}"` : ''}
-                        onchange="${onChange}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        ${readonlyAttr}
+                        onchange="updateData('${field}', ${type === 'number' ? 'parseFloat(this.value) || 0' : 'this.value'})"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${readonlyClass}"
                     />
                 </div>
             `;
@@ -198,8 +362,10 @@
         function createSimpleChart(title, data) {
             const maxValue = Math.max(...data.map(d => d.value));
             const chartItems = data.map((item, index) => {
-                const percentage = (item.value / maxValue) * 100;
-                const formattedValue = typeof item.value === 'number' ? formatNumber(item.value) : item.value;
+                const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+                const formattedValue = typeof item.value === 'number' ? 
+                    (item.value >= 1000000 ? formatCurrency(item.value) : formatNumber(item.value)) : 
+                    item.value;
                 
                 return `
                     <div class="flex items-center justify-between">
@@ -208,7 +374,7 @@
                             <div class="w-32 bg-gray-200 rounded-full h-2">
                                 <div class="bg-green-500 h-2 rounded-full progress-bar" style="width: ${percentage}%"></div>
                             </div>
-                            <span class="text-sm font-medium w-24 text-right">${formattedValue}</span>
+                            <span class="text-sm font-medium w-32 text-right">${formattedValue}</span>
                         </div>
                     </div>
                 `;
@@ -232,7 +398,9 @@
                 </p>
             ` : '';
 
-            const formattedValue = typeof value === 'number' ? formatNumber(value) : value;
+            const formattedValue = typeof value === 'number' ? 
+                (value >= 1000000 ? formatCurrency(value) : formatNumber(value)) : 
+                value;
 
             return `
                 <div class="bg-white p-4 rounded-lg shadow-md">
@@ -271,19 +439,21 @@
             - Producción anual: ${formatNumber(appData.volumen)} litros
             - Precio leche: ${formatCurrency(appData.precio_leche)}/litro
             - Empleados: ${appData.empleados}
+            - Productividad: ${formatNumber(calculations.productividad_por_vaca)} L/vaca/año
+            - Productividad por hectárea: ${formatNumber(calculations.productividad_por_hectarea)} L/ha
             
             RESULTADOS FINANCIEROS:
             - Ingresos totales: ${formatCurrency(calculations.total_ingresos)}
-            - Gastos básicos: ${formatCurrency(calculations.gastos_basicos)}
-            - Gastos adicionales: ${formatCurrency(calculations.gastos_adicionales)}
+            - Gastos totales: ${formatCurrency(calculations.total_gastos)}
             - Lucro: ${formatCurrency(calculations.lucro)}
             - Retorno sobre capital: ${calculations.retorno_capital.toFixed(2)}%
             - Costo producción/litro: ${formatCurrency(calculations.costo_produccion_litro)}
+            - Margen por litro: ${formatCurrency(calculations.margen_por_litro)}
             
-            PRODUCTIVIDAD:
-            - Litros/vaca/año: ${formatNumber(appData.volumen / appData.vacas)}
-            - Litros/empleado: ${formatNumber(calculations.litros_por_empleado)}
-            - Litros/hectárea: ${formatNumber(appData.volumen / appData.area)}
+            INVERSIONES:
+            - Inversión total: ${formatCurrency(calculations.total_inversiones)}
+            - Inversión por vaca: ${formatCurrency(calculations.total_inversiones / appData.vacas)}
+            - Inversión por hectárea: ${formatCurrency(calculations.total_inversiones / appData.area)}
             
             Proporciona un análisis detallado en formato JSON con:
             {
@@ -400,43 +570,46 @@
             `;
         }
 
-        // Definición de pestañas
-        const tabs = [
-            { id: 'datos_generales', label: 'Datos Generales', icon: 'calculator' },
-            { id: 'ingresos', label: 'Ingresos', icon: 'trending-up' },
-            { id: 'gastos', label: 'Gastos', icon: 'dollar-sign' },
-            { id: 'inversiones', label: 'Inversiones', icon: 'pie-chart' },
-            { id: 'resultados', label: 'Resultados', icon: 'bar-chart-3' },
-            { id: 'analisis', label: 'Análisis IA', icon: 'brain' }
-        ];
-
         // Función para cambiar de pestaña
         function setActiveTab(tabId) {
             activeTab = tabId;
             renderTabs();
             renderTabContent();
+            updateNavigationButtons();
         }
 
         // Función para actualizar datos
         function updateData(field, value) {
             appData[field] = value;
+            
+            // Recalcular valores automáticos cuando cambien campos clave
+            if (['volumen', 'precio_leche', 'vacas', 'novillas', 'area', 'valor_hectarea'].includes(field)) {
+                calculateAutomaticValues();
+            }
+            
             renderTabContent();
         }
 
         // Renderizar pestañas
         function renderTabs() {
             const tabNavigation = document.getElementById('tab-navigation');
-            tabNavigation.innerHTML = tabs.map(tab => `
-                <button
-                    onclick="setActiveTab('${tab.id}')"
-                    class="flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        activeTab === tab.id ? 'tab-active' : 'tab-inactive'
-                    }"
-                >
-                    ${createIcon(tab.icon, 16, 'mr-2')}
-                    ${tab.label}
-                </button>
-            `).join('');
+            tabNavigation.innerHTML = tabs.map(tab => {
+                const isCompleted = savedSections.has(tab.id);
+                const completedIcon = isCompleted ? `${createIcon('check-circle', 14, 'mr-1 text-green-600')}` : '';
+                
+                return `
+                    <button
+                        onclick="setActiveTab('${tab.id}')"
+                        class="flex items-center px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                            activeTab === tab.id ? 'tab-active' : 'tab-inactive'
+                        }"
+                    >
+                        ${completedIcon}
+                        ${createIcon(tab.icon, 16, 'mr-2')}
+                        ${tab.label}
+                    </button>
+                `;
+            }).join('');
         }
 
         // Renderizar contenido de pestañas
@@ -453,35 +626,36 @@
                             ${createKPICard('Vacas en Producción', appData.vacas, 'calculator', 'green', null, 'cabezas')}
                             ${createKPICard('Área Total', appData.area, 'pie-chart', 'blue', null, 'hectáreas')}
                             ${createKPICard('Producción Anual', appData.volumen, 'trending-up', 'purple', null, 'litros')}
-                            ${createKPICard('Precio Leche', formatCurrency(appData.precio_leche), 'dollar-sign', 'yellow', null, '/litro')}
+                            ${createKPICard('Precio Leche', appData.precio_leche, 'dollar-sign', 'yellow', null, '$/litro')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <h3 class="text-xl font-bold text-gray-800 mb-4">Datos Productivos</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    ${createInputField('Vacas en Producción', appData.vacas, 'updateData("vacas", this.value)', 'number', 0, 'Número de vacas actualmente en producción')}
-                                    ${createInputField('Área de la Finca (ha)', appData.area, 'updateData("area", this.value)', 'number', 0, 'Área total de la finca en hectáreas')}
-                                    ${createInputField('Volumen Anual (L)', appData.volumen, 'updateData("volumen", this.value)', 'number', 0, 'Producción total de leche en el año')}
-                                    ${createInputField('Precio Leche ($/L)', appData.precio_leche, 'updateData("precio_leche", this.value)', 'number', 0, 'Precio promedio pagado por litro de leche')}
-                                    ${createInputField('Número de Empleados', appData.empleados, 'updateData("empleados", this.value)', 'number', 0, 'Total de empleados en la finca')}
-                                    ${createInputField('Número de Novillas', appData.novillas, 'updateData("novillas", this.value)', 'number', 0, 'Número de novillas en la finca')}
+                                    ${createInputField('Vacas en Producción', appData.vacas, 'vacas', 'number', 0, 'Número de vacas actualmente en producción')}
+                                    ${createInputField('Área de la Finca (ha)', appData.area, 'area', 'number', 0, 'Área total de la finca en hectáreas')}
+                                    ${createInputField('Volumen Anual (L)', appData.volumen, 'volumen', 'number', 0, 'Producción total de leche en el año')}
+                                    ${createInputField('Precio Leche ($/L)', appData.precio_leche, 'precio_leche', 'number', 0, 'Precio promedio pagado por litro de leche')}
+                                    ${createInputField('Número de Empleados', appData.empleados, 'empleados', 'number', 0, 'Total de empleados en la finca')}
+                                    ${createInputField('Número de Novillas', appData.novillas, 'novillas', 'number', 0, 'Número de novillas en la finca')}
+                                    ${createInputField('Valor por Hectárea ($)', appData.valor_hectarea, 'valor_hectarea', 'number', 0, 'Valor comercial por hectárea de tierra')}
                                 </div>
                             </div>
 
                             <div class="space-y-4">
                                 ${createSimpleChart('Indicadores de Productividad', [
-                                    { label: 'Litros/Vaca/Año', value: Math.round(appData.volumen / appData.vacas) },
-                                    { label: 'Litros/Hectárea', value: Math.round(appData.volumen / appData.area) },
+                                    { label: 'Litros/Vaca/Año', value: Math.round(calculations.productividad_por_vaca) },
+                                    { label: 'Litros/Hectárea', value: Math.round(calculations.productividad_por_hectarea) },
                                     { label: 'Litros/Empleado', value: Math.round(calculations.litros_por_empleado) },
-                                    { label: 'Vacas/Hectárea', value: (appData.vacas / appData.area).toFixed(1) }
+                                    { label: 'Vacas/Hectárea', value: parseFloat((appData.vacas / appData.area).toFixed(1)) }
                                 ])}
                                 
                                 <div class="bg-white p-4 rounded-lg shadow-md">
                                     <h4 class="text-lg font-semibold mb-3 text-gray-800">Información Adicional</h4>
                                     <div class="space-y-2">
-                                        ${createInputField('Región', appData.region, 'updateData("region", this.value)', 'text')}
-                                        ${createInputField('Sistema de Producción', appData.sistema_produccion, 'updateData("sistema_produccion", this.value)', 'text')}
+                                        ${createInputField('Región', appData.region, 'region', 'text')}
+                                        ${createInputField('Sistema de Producción', appData.sistema_produccion, 'sistema_produccion', 'text')}
                                     </div>
                                 </div>
                             </div>
@@ -492,21 +666,21 @@
                 content = `
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                            ${createKPICard('Ingresos Totales', formatCurrency(calculations.total_ingresos), 'trending-up', 'green')}
-                            ${createKPICard('Venta de Leche', formatCurrency(appData.venta_leche), 'dollar-sign', 'blue')}
-                            ${createKPICard('Otros Ingresos', formatCurrency(calculations.total_ingresos - appData.venta_leche), 'pie-chart', 'purple')}
+                            ${createKPICard('Ingresos Totales', calculations.total_ingresos, 'trending-up', 'green')}
+                            ${createKPICard('Venta de Leche', appData.venta_leche, 'dollar-sign', 'blue')}
+                            ${createKPICard('Otros Ingresos', calculations.total_ingresos - appData.venta_leche, 'pie-chart', 'purple')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <h3 class="text-xl font-bold text-gray-800 mb-4">Ingresos Operativos</h3>
                                 <div class="space-y-4">
-                                    ${createInputField('Venta de Leche ($/año)', appData.venta_leche, 'updateData("venta_leche", this.value)', 'number', 0, 'Ingresos por venta de leche en el año')}
-                                    ${createInputField('Venta de Animales ($/año)', appData.venta_animales, 'updateData("venta_animales", this.value)', 'number', 0, 'Ingresos por venta de animales')}
-                                    ${createInputField('Venta de Estiércol ($/año)', appData.venta_estiercol, 'updateData("venta_estiercol", this.value)', 'number', 0, 'Ingresos por venta de estiércol')}
-                                    ${createInputField('Otros Ingresos ($/año)', appData.otros_ingresos, 'updateData("otros_ingresos", this.value)', 'number', 0, 'Otros ingresos diversos')}
-                                    ${createInputField('Cambio Stock Animales ($/año)', appData.cambio_stock_animales, 'updateData("cambio_stock_animales", this.value)', 'number', 0, 'Cambio en el valor del stock de animales')}
-                                    ${createInputField('Cambio Stock Alimentos ($/año)', appData.cambio_stock_alimentos, 'updateData("cambio_stock_alimentos", this.value)', 'number', 0, 'Cambio en el valor del stock de alimentos')}
+                                    ${createInputField('Venta de Leche ($/año)', appData.venta_leche, 'venta_leche', 'number', 0, 'Calculado automáticamente: Volumen × Precio', true)}
+                                    ${createInputField('Venta de Animales ($/año)', appData.venta_animales, 'venta_animales', 'number', 0, 'Ingresos por venta de animales')}
+                                    ${createInputField('Venta de Estiércol ($/año)', appData.venta_estiercol, 'venta_estiercol', 'number', 0, 'Ingresos por venta de estiércol')}
+                                    ${createInputField('Otros Ingresos ($/año)', appData.otros_ingresos, 'otros_ingresos', 'number', 0, 'Otros ingresos diversos')}
+                                    ${createInputField('Cambio Stock Animales ($/año)', appData.cambio_stock_animales, 'cambio_stock_animales', 'number', 0, 'Cambio en el valor del stock de animales')}
+                                    ${createInputField('Cambio Stock Alimentos ($/año)', appData.cambio_stock_alimentos, 'cambio_stock_alimentos', 'number', 0, 'Cambio en el valor del stock de alimentos')}
                                 </div>
                             </div>
 
@@ -525,15 +699,19 @@
                                     <div class="space-y-2 text-sm">
                                         <div class="flex justify-between">
                                             <span>Participación Leche:</span>
-                                            <span class="font-medium">${((appData.venta_leche / calculations.total_ingresos) * 100).toFixed(1)}%</span>
+                                            <span class="font-medium">${calculations.total_ingresos > 0 ? ((appData.venta_leche / calculations.total_ingresos) * 100).toFixed(1) : 0}%</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Ingreso por Vaca:</span>
-                                            <span class="font-medium">${formatCurrency(calculations.total_ingresos / appData.vacas)}</span>
+                                            <span class="font-medium">${formatCurrency(appData.vacas > 0 ? calculations.total_ingresos / appData.vacas : 0)}</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Ingreso por Hectárea:</span>
-                                            <span class="font-medium">${formatCurrency(calculations.total_ingresos / appData.area)}</span>
+                                            <span class="font-medium">${formatCurrency(appData.area > 0 ? calculations.total_ingresos / appData.area : 0)}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Ingreso por Litro:</span>
+                                            <span class="font-medium">${formatCurrency(appData.volumen > 0 ? calculations.total_ingresos / appData.volumen : 0)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -545,28 +723,28 @@
                 content = `
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                            ${createKPICard('Gastos Básicos', formatCurrency(calculations.gastos_basicos), 'dollar-sign', 'red')}
-                            ${createKPICard('Gastos Adicionales', formatCurrency(calculations.gastos_adicionales), 'trending-up', 'orange')}
-                            ${createKPICard('Gastos Totales', formatCurrency(calculations.gastos_basicos + calculations.gastos_adicionales), 'calculator', 'purple')}
+                            ${createKPICard('Gastos Básicos', calculations.gastos_basicos, 'dollar-sign', 'red')}
+                            ${createKPICard('Gastos Adicionales', calculations.gastos_adicionales, 'trending-up', 'orange')}
+                            ${createKPICard('Gastos Totales', calculations.total_gastos, 'calculator', 'purple')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <h3 class="text-xl font-bold text-gray-800 mb-4">Gastos Básicos</h3>
                                 <div class="space-y-4 scroll-container">
-                                    ${createInputField('Mantenimiento Maquinaria', appData.mantenimiento_maquinas, 'updateData("mantenimiento_maquinas", this.value)')}
-                                    ${createInputField('Mantenimiento Instalaciones', appData.mantenimiento_instalaciones, 'updateData("mantenimiento_instalaciones", this.value)')}
-                                    ${createInputField('Alquiler de Máquinas', appData.alquiler_maquinas, 'updateData("alquiler_maquinas", this.value)')}
-                                    ${createInputField('Energía y Combustibles', appData.energia, 'updateData("energia", this.value)')}
-                                    ${createInputField('Alimentos Comprados', appData.alimentos_comprados, 'updateData("alimentos_comprados", this.value)')}
-                                    ${createInputField('Fertilizantes', appData.correctivos_fertilizantes, 'updateData("correctivos_fertilizantes", this.value)')}
-                                    ${createInputField('Productos Químicos', appData.productos_quimicos, 'updateData("productos_quimicos", this.value)')}
-                                    ${createInputField('Semillas', appData.semillas, 'updateData("semillas", this.value)')}
-                                    ${createInputField('Reproducción', appData.reproduccion, 'updateData("reproduccion", this.value)')}
-                                    ${createInputField('Sanidad', appData.salud, 'updateData("salud", this.value)')}
-                                    ${createInputField('Consumibles', appData.consumibles, 'updateData("consumibles", this.value)')}
-                                    ${createInputField('BST', appData.bst, 'updateData("bst", this.value)')}
-                                    ${createInputField('Impuestos', appData.impuestos, 'updateData("impuestos", this.value)')}
+                                    ${createInputField('Mantenimiento Maquinaria', appData.mantenimiento_maquinas, 'mantenimiento_maquinas')}
+                                    ${createInputField('Mantenimiento Instalaciones', appData.mantenimiento_instalaciones, 'mantenimiento_instalaciones')}
+                                    ${createInputField('Alquiler de Máquinas', appData.alquiler_maquinas, 'alquiler_maquinas')}
+                                    ${createInputField('Energía y Combustibles', appData.energia, 'energia')}
+                                    ${createInputField('Alimentos Comprados', appData.alimentos_comprados, 'alimentos_comprados')}
+                                    ${createInputField('Fertilizantes', appData.correctivos_fertilizantes, 'correctivos_fertilizantes')}
+                                    ${createInputField('Productos Químicos', appData.productos_quimicos, 'productos_quimicos')}
+                                    ${createInputField('Semillas', appData.semillas, 'semillas')}
+                                    ${createInputField('Reproducción', appData.reproduccion, 'reproduccion')}
+                                    ${createInputField('Sanidad', appData.salud, 'salud')}
+                                    ${createInputField('Consumibles', appData.consumibles, 'consumibles')}
+                                    ${createInputField('BST', appData.bst, 'bst')}
+                                    ${createInputField('Impuestos', appData.impuestos, 'impuestos')}
                                 </div>
                             </div>
 
@@ -574,12 +752,12 @@
                                 <div class="bg-white p-6 rounded-lg shadow-md">
                                     <h3 class="text-xl font-bold text-gray-800 mb-4">Gastos Adicionales</h3>
                                     <div class="space-y-4">
-                                        ${createInputField('Mano de Obra Fija', appData.mano_obra_fija, 'updateData("mano_obra_fija", this.value)')}
-                                        ${createInputField('Mano de Obra Temporal', appData.mano_obra_temporal, 'updateData("mano_obra_temporal", this.value)')}
-                                        ${createInputField('Administración', appData.administracion, 'updateData("administracion", this.value)')}
-                                        ${createInputField('Intereses Préstamos', appData.intereses_prestamos, 'updateData("intereses_prestamos", this.value)')}
-                                        ${createInputField('Depreciación Maquinaria', appData.depreciacion_maquinaria, 'updateData("depreciacion_maquinaria", this.value)')}
-                                        ${createInputField('Depreciación Instalaciones', appData.depreciacion_instalaciones, 'updateData("depreciacion_instalaciones", this.value)')}
+                                        ${createInputField('Mano de Obra Fija', appData.mano_obra_fija, 'mano_obra_fija')}
+                                        ${createInputField('Mano de Obra Temporal', appData.mano_obra_temporal, 'mano_obra_temporal')}
+                                        ${createInputField('Administración', appData.administracion, 'administracion')}
+                                        ${createInputField('Intereses Préstamos', appData.intereses_prestamos, 'intereses_prestamos')}
+                                        ${createInputField('Depreciación Maquinaria', appData.depreciacion_maquinaria, 'depreciacion_maquinaria')}
+                                        ${createInputField('Depreciación Instalaciones', appData.depreciacion_instalaciones, 'depreciacion_instalaciones')}
                                     </div>
                                 </div>
 
@@ -601,11 +779,15 @@
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Participación Alimentos:</span>
-                                            <span class="font-medium">${((appData.alimentos_comprados / calculations.gastos_basicos) * 100).toFixed(1)}%</span>
+                                            <span class="font-medium">${calculations.gastos_basicos > 0 ? ((appData.alimentos_comprados / calculations.gastos_basicos) * 100).toFixed(1) : 0}%</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Costo por Vaca:</span>
-                                            <span class="font-medium">${formatCurrency((calculations.gastos_basicos + calculations.gastos_adicionales) / appData.vacas)}</span>
+                                            <span class="font-medium">${formatCurrency(appData.vacas > 0 ? calculations.total_gastos / appData.vacas : 0)}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Eficiencia Mano de Obra:</span>
+                                            <span class="font-medium">${formatNumber(calculations.litros_por_empleado)} L/empleado</span>
                                         </div>
                                     </div>
                                 </div>
@@ -617,20 +799,20 @@
                 content = `
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                            ${createKPICard('Inversión Total', formatCurrency(calculations.total_inversiones), 'pie-chart', 'blue')}
-                            ${createKPICard('Tierra', formatCurrency(appData.inversiones_tierra), 'trending-up', 'green')}
-                            ${createKPICard('Animales', formatCurrency(appData.inversiones_animales), 'calculator', 'purple')}
-                            ${createKPICard('Infraestructura', formatCurrency(appData.inversiones_instalaciones + appData.inversiones_maquinaria), 'dollar-sign', 'orange')}
+                            ${createKPICard('Inversión Total', calculations.total_inversiones, 'pie-chart', 'blue')}
+                            ${createKPICard('Tierra', appData.inversiones_tierra, 'trending-up', 'green')}
+                            ${createKPICard('Animales', appData.inversiones_animales, 'calculator', 'purple')}
+                            ${createKPICard('Infraestructura', appData.inversiones_instalaciones + appData.inversiones_maquinaria, 'dollar-sign', 'orange')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div class="bg-white p-6 rounded-lg shadow-md">
                                 <h3 class="text-xl font-bold text-gray-800 mb-4">Inversiones por Categoría</h3>
                                 <div class="space-y-4">
-                                    ${createInputField('Instalaciones ($)', appData.inversiones_instalaciones, 'updateData("inversiones_instalaciones", this.value)', 'number', 0, 'Valor de instalaciones y construcciones')}
-                                    ${createInputField('Maquinaria y Equipo ($)', appData.inversiones_maquinaria, 'updateData("inversiones_maquinaria", this.value)', 'number', 0, 'Valor de maquinaria y equipos')}
-                                    ${createInputField('Animales ($)', appData.inversiones_animales, 'updateData("inversiones_animales", this.value)', 'number', 0, 'Valor del hato ganadero')}
-                                    ${createInputField('Tierra ($)', appData.inversiones_tierra, 'updateData("inversiones_tierra", this.value)', 'number', 0, 'Valor de la tierra')}
+                                    ${createInputField('Instalaciones ($)', appData.inversiones_instalaciones, 'inversiones_instalaciones', 'number', 0, 'Valor de instalaciones y construcciones')}
+                                    ${createInputField('Maquinaria y Equipo ($)', appData.inversiones_maquinaria, 'inversiones_maquinaria', 'number', 0, 'Valor de maquinaria y equipos')}
+                                    ${createInputField('Animales ($)', appData.inversiones_animales, 'inversiones_animales', 'number', 0, 'Calculado automáticamente según número de animales', true)}
+                                    ${createInputField('Tierra ($)', appData.inversiones_tierra, 'inversiones_tierra', 'number', 0, 'Calculado automáticamente: Área × Valor/ha', true)}
                                 </div>
                             </div>
 
@@ -647,19 +829,23 @@
                                     <div class="space-y-2 text-sm">
                                         <div class="flex justify-between">
                                             <span>Inversión por Vaca:</span>
-                                            <span class="font-medium">${formatCurrency(calculations.total_inversiones / appData.vacas)}</span>
+                                            <span class="font-medium">${formatCurrency(appData.vacas > 0 ? calculations.total_inversiones / appData.vacas : 0)}</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Inversión por Hectárea:</span>
-                                            <span class="font-medium">${formatCurrency(calculations.total_inversiones / appData.area)}</span>
+                                            <span class="font-medium">${formatCurrency(appData.area > 0 ? calculations.total_inversiones / appData.area : 0)}</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>% Tierra:</span>
-                                            <span class="font-medium">${((appData.inversiones_tierra / calculations.total_inversiones) * 100).toFixed(1)}%</span>
+                                            <span class="font-medium">${calculations.total_inversiones > 0 ? ((appData.inversiones_tierra / calculations.total_inversiones) * 100).toFixed(1) : 0}%</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>% Animales:</span>
-                                            <span class="font-medium">${((appData.inversiones_animales / calculations.total_inversiones) * 100).toFixed(1)}%</span>
+                                            <span class="font-medium">${calculations.total_inversiones > 0 ? ((appData.inversiones_animales / calculations.total_inversiones) * 100).toFixed(1) : 0}%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>% Infraestructura:</span>
+                                            <span class="font-medium">${calculations.total_inversiones > 0 ? (((appData.inversiones_instalaciones + appData.inversiones_maquinaria) / calculations.total_inversiones) * 100).toFixed(1) : 0}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -671,10 +857,10 @@
                 content = `
                     <div class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                            ${createKPICard('Lucro Anual', formatCurrency(calculations.lucro), 'trending-up', calculations.lucro > 0 ? 'green' : 'red')}
+                            ${createKPICard('Lucro Anual', calculations.lucro, 'trending-up', calculations.lucro > 0 ? 'green' : 'red')}
                             ${createKPICard('Retorno Capital', `${calculations.retorno_capital.toFixed(2)}%`, 'pie-chart', calculations.retorno_capital > 0 ? 'green' : 'red')}
-                            ${createKPICard('Margen por Litro', formatCurrency(calculations.lucro / appData.volumen), 'calculator', (calculations.lucro / appData.volumen) > 0 ? 'green' : 'red')}
-                            ${createKPICard('Productividad', `${(appData.volumen / appData.vacas).toFixed(0)} L/vaca`, 'bar-chart-3', 'blue')}
+                            ${createKPICard('Margen por Litro', calculations.margen_por_litro, 'calculator', calculations.margen_por_litro > 0 ? 'green' : 'red')}
+                            ${createKPICard('Productividad', `${calculations.productividad_por_vaca.toFixed(0)} L/vaca`, 'bar-chart-3', 'blue')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -702,7 +888,7 @@
                                     <div class="border-b pb-2">
                                         <div class="flex justify-between items-center">
                                             <span class="font-medium">Gastos Totales:</span>
-                                            <span class="text-red-600 font-bold">${formatCurrency(calculations.gastos_basicos + calculations.gastos_adicionales)}</span>
+                                            <span class="text-red-600 font-bold">${formatCurrency(calculations.total_gastos)}</span>
                                         </div>
                                     </div>
                                     <div class="pt-2">
@@ -729,19 +915,23 @@
                                     <div class="space-y-2 text-sm">
                                         <div class="flex justify-between">
                                             <span>Margen Bruto:</span>
-                                            <span class="font-medium">${((calculations.lucro / calculations.total_ingresos) * 100).toFixed(2)}%</span>
+                                            <span class="font-medium">${calculations.total_ingresos > 0 ? ((calculations.lucro / calculations.total_ingresos) * 100).toFixed(2) : 0}%</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Punto de Equilibrio:</span>
-                                            <span class="font-medium">${formatCurrency((calculations.gastos_basicos + calculations.gastos_adicionales) / appData.volumen)}/L</span>
+                                            <span class="font-medium">${formatCurrency(calculations.costo_produccion_litro)}/L</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Eficiencia Productiva:</span>
-                                            <span class="font-medium">${(appData.volumen / appData.area).toFixed(0)} L/ha</span>
+                                            <span class="font-medium">${calculations.productividad_por_hectarea.toFixed(0)} L/ha</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Litros por Empleado:</span>
                                             <span class="font-medium">${formatNumber(calculations.litros_por_empleado)}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>ROI Anual:</span>
+                                            <span class="font-medium ${calculations.retorno_capital > 0 ? 'text-green-600' : 'text-red-600'}">${calculations.retorno_capital.toFixed(2)}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -761,13 +951,13 @@
                                     <div class="border-l-4 border-blue-500 pl-4">
                                         <h4 class="font-semibold text-gray-800">Productividad vs Región</h4>
                                         <p class="text-sm text-gray-600">
-                                            Su finca: ${(appData.volumen / appData.vacas).toFixed(0)} L/vaca/año
+                                            Su finca: ${calculations.productividad_por_vaca.toFixed(0)} L/vaca/año
                                         </p>
                                         <p class="text-sm text-gray-600">
                                             Promedio regional: 6,500 L/vaca/año
                                         </p>
-                                        <div class="text-sm font-medium ${(appData.volumen / appData.vacas) > 6500 ? 'text-green-600' : 'text-orange-600'}">
-                                            ${(appData.volumen / appData.vacas) > 6500 ? '✓ Por encima del promedio' : '⚠ Por debajo del promedio'}
+                                        <div class="text-sm font-medium ${calculations.productividad_por_vaca > 6500 ? 'text-green-600' : 'text-orange-600'}">
+                                            ${calculations.productividad_por_vaca > 6500 ? '✓ Por encima del promedio' : '⚠ Por debajo del promedio'}
                                         </div>
                                     </div>
                                     
@@ -781,6 +971,19 @@
                                         </p>
                                         <div class="text-sm font-medium ${calculations.retorno_capital > 8 ? 'text-green-600' : 'text-orange-600'}">
                                             ${calculations.retorno_capital > 8 ? '✓ Rentabilidad competitiva' : '⚠ Oportunidad de mejora'}
+                                        </div>
+                                    </div>
+
+                                    <div class="border-l-4 border-purple-500 pl-4">
+                                        <h4 class="font-semibold text-gray-800">Eficiencia de Costos</h4>
+                                        <p class="text-sm text-gray-600">
+                                            Su costo: ${formatCurrency(calculations.costo_produccion_litro)}/litro
+                                        </p>
+                                        <p class="text-sm text-gray-600">
+                                            Promedio sector: $1,800-2,200/litro
+                                        </p>
+                                        <div class="text-sm font-medium ${calculations.costo_produccion_litro < 2000 ? 'text-green-600' : 'text-orange-600'}">
+                                            ${calculations.costo_produccion_litro < 2000 ? '✓ Costos competitivos' : '⚠ Optimizar costos'}
                                         </div>
                                     </div>
                                 </div>
@@ -802,6 +1005,12 @@
                                                     ${formatCurrency(calculations.lucro + (appData.volumen * appData.precio_leche * 0.1))}
                                                 </span>
                                             </div>
+                                            <div class="flex justify-between">
+                                                <span>ROI Proyectado:</span>
+                                                <span class="font-bold text-green-600">
+                                                    ${calculations.total_inversiones > 0 ? (((calculations.lucro + (appData.volumen * appData.precio_leche * 0.1)) / calculations.total_inversiones) * 100).toFixed(2) : 0}%
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -816,6 +1025,28 @@
                                                 <span>Lucro Proyectado:</span>
                                                 <span class="font-bold text-red-600">
                                                     ${formatCurrency(calculations.lucro - (appData.volumen * appData.precio_leche * 0.1))}
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>ROI Proyectado:</span>
+                                                <span class="font-bold text-red-600">
+                                                    ${calculations.total_inversiones > 0 ? (((calculations.lucro - (appData.volumen * appData.precio_leche * 0.1)) / calculations.total_inversiones) * 100).toFixed(2) : 0}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-green-50 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-green-800 mb-2">Mejora Productividad (+15%)</h4>
+                                        <div class="text-sm space-y-1">
+                                            <div class="flex justify-between">
+                                                <span>Nueva Producción:</span>
+                                                <span>${formatNumber(appData.volumen * 1.15)} L/año</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>Lucro Proyectado:</span>
+                                                <span class="font-bold text-green-600">
+                                                    ${formatCurrency(calculations.lucro + (appData.volumen * 0.15 * appData.precio_leche))}
                                                 </span>
                                             </div>
                                         </div>
@@ -837,8 +1068,13 @@
 
         // Inicialización cuando se carga la página
         document.addEventListener('DOMContentLoaded', function() {
+            // Calcular valores automáticos al cargar
+            calculateAutomaticValues();
+            
             renderTabs();
             renderTabContent();
+            updateNavigationButtons();
+            updateProgress();
             
             // Inicializar iconos de Lucide
             if (typeof lucide !== 'undefined') {
