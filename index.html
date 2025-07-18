@@ -107,6 +107,13 @@
     <script>
         // Datos de la aplicación
         let appData = {
+            // Información de la Finca
+            nombre_finca: '',
+            propietario: '',
+            telefono: '',
+            email: '',
+            ubicacion: '',
+            
             // Datos Generales
             vacas: 114,
             area: 125,
@@ -182,7 +189,10 @@
             Brain: 'brain',
             AlertCircle: 'alert-circle',
             CheckCircle: 'check-circle',
-            Info: 'info'
+            Info: 'info',
+            Building: 'building',
+            Download: 'download',
+            Droplets: 'droplets'
         };
 
         // Funciones de formateo
@@ -221,6 +231,11 @@
             const total_ingresos = appData.venta_leche + appData.venta_animales + appData.venta_estiercol + 
                                  appData.otros_ingresos + appData.cambio_stock_animales + appData.cambio_stock_alimentos;
             
+            // Cálculo de Leche Equivalente (todos los ingresos convertidos a litros de leche)
+            const leche_equivalente_total = appData.precio_leche > 0 ? total_ingresos / appData.precio_leche : 0;
+            const leche_equivalente_por_vaca = appData.vacas > 0 ? leche_equivalente_total / appData.vacas : 0;
+            const leche_equivalente_por_hectarea = appData.area > 0 ? leche_equivalente_total / appData.area : 0;
+            
             const gastos_basicos = appData.mantenimiento_maquinas + appData.mantenimiento_instalaciones + 
                                  appData.alquiler_maquinas + appData.energia + appData.alimentos_comprados + 
                                  appData.correctivos_fertilizantes + appData.productos_quimicos + appData.semillas + 
@@ -245,6 +260,9 @@
 
             return {
                 leche_eq_kg,
+                leche_equivalente_total,
+                leche_equivalente_por_vaca,
+                leche_equivalente_por_hectarea,
                 total_ingresos,
                 gastos_basicos,
                 gastos_adicionales,
@@ -418,6 +436,126 @@
             `;
         }
 
+        // Función para exportar a PDF
+        function exportToPDF() {
+            const calculations = getCalculations();
+            
+            // Crear contenido HTML para el PDF
+            const pdfContent = `
+                <div style="font-family: Arial, sans-serif; margin: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #10b981; padding-bottom: 20px;">
+                        <h1 style="color: #059669; margin: 0;">Reporte de Gestión Lechera</h1>
+                        <h2 style="color: #374151; margin: 10px 0;">${appData.nombre_finca || 'Finca Lechera'}</h2>
+                        <p style="color: #6b7280; margin: 5px 0;">Propietario: ${appData.propietario || 'No especificado'}</p>
+                        <p style="color: #6b7280; margin: 5px 0;">Ubicación: ${appData.ubicacion || appData.region}</p>
+                        <p style="color: #6b7280; margin: 5px 0;">Fecha del reporte: ${new Date().toLocaleDateString('es-CO')}</p>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #059669; border-bottom: 1px solid #d1d5db; padding-bottom: 5px;">Datos Productivos</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Vacas en Producción:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(appData.vacas)} cabezas</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Área de la Finca:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(appData.area)} hectáreas</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Producción Anual:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(appData.volumen)} litros</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Precio de Leche:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(appData.precio_leche)} por litro</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Número de Empleados:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(appData.empleados)} personas</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #059669; border-bottom: 1px solid #d1d5db; padding-bottom: 5px;">Indicadores de Productividad</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Productividad por Vaca:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(calculations.productividad_por_vaca.toFixed(0))} L/vaca/año</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Productividad por Hectárea:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(calculations.productividad_por_hectarea.toFixed(0))} L/ha/año</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Leche Equivalente Total:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(calculations.leche_equivalente_total.toFixed(0))} litros</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Leche Equivalente por Vaca:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(calculations.leche_equivalente_por_vaca.toFixed(0))} L/vaca</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Leche Equivalente por Hectárea:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatNumber(calculations.leche_equivalente_por_hectarea.toFixed(0))} L/ha</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #059669; border-bottom: 1px solid #d1d5db; padding-bottom: 5px;">Resultados Financieros</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Ingresos Totales:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb; color: #059669;">${formatCurrency(calculations.total_ingresos)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Gastos Totales:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb; color: #dc2626;">${formatCurrency(calculations.total_gastos)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Lucro:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb; color: ${calculations.lucro > 0 ? '#059669' : '#dc2626'}; font-weight: bold;">${formatCurrency(calculations.lucro)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Retorno sobre Capital:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb; color: ${calculations.retorno_capital > 0 ? '#059669' : '#dc2626'};">${calculations.retorno_capital.toFixed(2)}%</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Costo por Litro:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(calculations.costo_produccion_litro)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Margen por Litro:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb; color: ${calculations.margen_por_litro > 0 ? '#059669' : '#dc2626'};">${formatCurrency(calculations.margen_por_litro)}</td></tr>
+                        </table>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #059669; border-bottom: 1px solid #d1d5db; padding-bottom: 5px;">Inversiones</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Inversión Total:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(calculations.total_inversiones)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Inversión por Vaca:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(appData.vacas > 0 ? calculations.total_inversiones / appData.vacas : 0)}</td></tr>
+                            <tr><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;"><strong>Inversión por Hectárea:</strong></td><td style="padding: 5px; border-bottom: 1px solid #e5e7eb;">${formatCurrency(appData.area > 0 ? calculations.total_inversiones / appData.area : 0)}</td></tr>
+                        </table>
+                    </div>
+
+                    ${aiAnalysis ? `
+                    <div style="margin-bottom: 25px;">
+                        <h3 style="color: #059669; border-bottom: 1px solid #d1d5db; padding-bottom: 5px;">Análisis Inteligente</h3>
+                        <div style="margin-top: 15px;">
+                            <h4 style="color: #374151; margin-bottom: 10px;">Resumen Ejecutivo:</h4>
+                            <p style="margin-bottom: 15px; line-height: 1.5;">${aiAnalysis.resumen_ejecutivo}</p>
+                            
+                            ${aiAnalysis.fortalezas && aiAnalysis.fortalezas.length > 0 ? `
+                            <h4 style="color: #059669; margin-bottom: 10px;">Fortalezas:</h4>
+                            <ul style="margin-bottom: 15px; line-height: 1.5;">
+                                ${aiAnalysis.fortalezas.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                            ` : ''}
+                            
+                            ${aiAnalysis.recomendaciones && aiAnalysis.recomendaciones.length > 0 ? `
+                            <h4 style="color: #2563eb; margin-bottom: 10px;">Recomendaciones:</h4>
+                            <ul style="margin-bottom: 15px; line-height: 1.5;">
+                                ${aiAnalysis.recomendaciones.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div style="margin-top: 30px; text-align: center; border-top: 1px solid #d1d5db; padding-top: 20px; color: #6b7280; font-size: 12px;">
+                        <p>Reporte generado por Sistema de Gestión Estratégica Lechera</p>
+                        <p>San Pedro de los Milagros, Antioquia - Colombia</p>
+                        <p>Contacto: ${appData.telefono || ''} | ${appData.email || ''}</p>
+                    </div>
+                </div>
+            `;
+
+            // Crear ventana para imprimir
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Reporte de Gestión Lechera - ${appData.nombre_finca || 'Finca'}</title>
+                    <meta charset="UTF-8">
+                    <style>
+                        @media print {
+                            body { margin: 0; }
+                            @page { margin: 1cm; }
+                        }
+                        body { font-family: Arial, sans-serif; }
+                    </style>
+                </head>
+                <body>
+                    ${pdfContent}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Esperar a que se cargue y abrir diálogo de impresión
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
         // Función para análisis con IA
         async function analyzeWithAI() {
             if (!window.claude || !window.claude.complete) {
@@ -433,6 +571,11 @@
             const prompt = `
             Analiza estos datos de una finca lechera en San Pedro de los Milagros, Antioquia:
             
+            INFORMACIÓN DE LA FINCA:
+            - Nombre: ${appData.nombre_finca || 'No especificado'}
+            - Propietario: ${appData.propietario || 'No especificado'}
+            - Ubicación: ${appData.ubicacion || appData.region}
+            
             DATOS PRODUCTIVOS:
             - Vacas en producción: ${appData.vacas}
             - Área: ${appData.area} hectáreas
@@ -441,6 +584,11 @@
             - Empleados: ${appData.empleados}
             - Productividad: ${formatNumber(calculations.productividad_por_vaca)} L/vaca/año
             - Productividad por hectárea: ${formatNumber(calculations.productividad_por_hectarea)} L/ha
+            
+            LECHE EQUIVALENTE:
+            - Leche equivalente total: ${formatNumber(calculations.leche_equivalente_total)} litros
+            - Leche equivalente por vaca: ${formatNumber(calculations.leche_equivalente_por_vaca)} L/vaca
+            - Leche equivalente por hectárea: ${formatNumber(calculations.leche_equivalente_por_hectarea)} L/ha
             
             RESULTADOS FINANCIEROS:
             - Ingresos totales: ${formatCurrency(calculations.total_ingresos)}
@@ -464,7 +612,8 @@
               "indicadores_clave": {
                 "productividad": "análisis de productividad",
                 "rentabilidad": "análisis de rentabilidad",
-                "eficiencia": "análisis de eficiencia"
+                "eficiencia": "análisis de eficiencia",
+                "leche_equivalente": "análisis del indicador de leche equivalente"
               },
               "alertas": ["alertas importantes si las hay"]
             }
@@ -557,13 +706,22 @@
                             ${createIcon('brain', 24, 'mr-2 text-indigo-600')}
                             Análisis Inteligente
                         </h3>
-                        <button
-                            id="analyze-button"
-                            onclick="analyzeWithAI()"
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                        >
-                            Analizar con IA
-                        </button>
+                        <div class="flex space-x-2">
+                            <button
+                                id="analyze-button"
+                                onclick="analyzeWithAI()"
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                            >
+                                Analizar con IA
+                            </button>
+                            <button
+                                onclick="exportToPDF()"
+                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
+                            >
+                                ${createIcon('download', 16, 'mr-1')}
+                                Exportar PDF
+                            </button>
+                        </div>
                     </div>
                     ${analysisContent}
                 </div>
@@ -622,6 +780,21 @@
             if (activeTab === 'datos_generales') {
                 content = `
                     <div class="space-y-6">
+                        <!-- Información de la Finca -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                ${createIcon('building', 24, 'mr-2 text-green-600')}
+                                Información de la Finca
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                ${createInputField('Nombre de la Finca', appData.nombre_finca, 'nombre_finca', 'text', 0, 'Nombre o razón social de la finca')}
+                                ${createInputField('Propietario', appData.propietario, 'propietario', 'text', 0, 'Nombre del propietario o administrador')}
+                                ${createInputField('Teléfono', appData.telefono, 'telefono', 'text', 0, 'Número de contacto')}
+                                ${createInputField('Email', appData.email, 'email', 'email', 0, 'Correo electrónico de contacto')}
+                                ${createInputField('Ubicación', appData.ubicacion, 'ubicacion', 'text', 0, 'Dirección o ubicación específica')}
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                             ${createKPICard('Vacas en Producción', appData.vacas, 'calculator', 'green', null, 'cabezas')}
                             ${createKPICard('Área Total', appData.area, 'pie-chart', 'blue', null, 'hectáreas')}
@@ -649,6 +822,12 @@
                                     { label: 'Litros/Hectárea', value: Math.round(calculations.productividad_por_hectarea) },
                                     { label: 'Litros/Empleado', value: Math.round(calculations.litros_por_empleado) },
                                     { label: 'Vacas/Hectárea', value: parseFloat((appData.vacas / appData.area).toFixed(1)) }
+                                ])}
+                                
+                                ${createSimpleChart('Leche Equivalente', [
+                                    { label: 'Leche Equiv. Total', value: Math.round(calculations.leche_equivalente_total) },
+                                    { label: 'Leche Equiv./Vaca', value: Math.round(calculations.leche_equivalente_por_vaca) },
+                                    { label: 'Leche Equiv./Hectárea', value: Math.round(calculations.leche_equivalente_por_hectarea) }
                                 ])}
                                 
                                 <div class="bg-white p-4 rounded-lg shadow-md">
@@ -700,6 +879,14 @@
                                         <div class="flex justify-between">
                                             <span>Participación Leche:</span>
                                             <span class="font-medium">${calculations.total_ingresos > 0 ? ((appData.venta_leche / calculations.total_ingresos) * 100).toFixed(1) : 0}%</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Leche Equiv. Total:</span>
+                                            <span class="font-medium">${formatNumber(calculations.leche_equivalente_total.toFixed(0))} L</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Leche Equiv./Vaca:</span>
+                                            <span class="font-medium">${formatNumber(calculations.leche_equivalente_por_vaca.toFixed(0))} L</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Ingreso por Vaca:</span>
@@ -778,10 +965,6 @@
                                             <span class="font-medium">${formatCurrency(calculations.costo_produccion_litro)}</span>
                                         </div>
                                         <div class="flex justify-between">
-                                            <span>Participación Alimentos:</span>
-                                            <span class="font-medium">${calculations.gastos_basicos > 0 ? ((appData.alimentos_comprados / calculations.gastos_basicos) * 100).toFixed(1) : 0}%</span>
-                                        </div>
-                                        <div class="flex justify-between">
                                             <span>Costo por Vaca:</span>
                                             <span class="font-medium">${formatCurrency(appData.vacas > 0 ? calculations.total_gastos / appData.vacas : 0)}</span>
                                         </div>
@@ -856,11 +1039,12 @@
             } else if (activeTab === 'resultados') {
                 content = `
                     <div class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
                             ${createKPICard('Lucro Anual', calculations.lucro, 'trending-up', calculations.lucro > 0 ? 'green' : 'red')}
                             ${createKPICard('Retorno Capital', `${calculations.retorno_capital.toFixed(2)}%`, 'pie-chart', calculations.retorno_capital > 0 ? 'green' : 'red')}
                             ${createKPICard('Margen por Litro', calculations.margen_por_litro, 'calculator', calculations.margen_por_litro > 0 ? 'green' : 'red')}
                             ${createKPICard('Productividad', `${calculations.productividad_por_vaca.toFixed(0)} L/vaca`, 'bar-chart-3', 'blue')}
+                            ${createKPICard('Leche Equiv. Total', `${formatNumber(calculations.leche_equivalente_total.toFixed(0))} L`, 'droplets', 'purple')}
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -933,6 +1117,18 @@
                                             <span>ROI Anual:</span>
                                             <span class="font-medium ${calculations.retorno_capital > 0 ? 'text-green-600' : 'text-red-600'}">${calculations.retorno_capital.toFixed(2)}%</span>
                                         </div>
+                                        <div class="flex justify-between border-t pt-2">
+                                            <span><strong>Leche Equivalente:</strong></span>
+                                            <span class="font-medium text-purple-600">${formatNumber(calculations.leche_equivalente_total.toFixed(0))} L</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Leche Equiv./Vaca:</span>
+                                            <span class="font-medium">${formatNumber(calculations.leche_equivalente_por_vaca.toFixed(0))} L</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Leche Equiv./Hectárea:</span>
+                                            <span class="font-medium">${formatNumber(calculations.leche_equivalente_por_hectarea.toFixed(0))} L</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -984,6 +1180,19 @@
                                         </p>
                                         <div class="text-sm font-medium ${calculations.costo_produccion_litro < 2000 ? 'text-green-600' : 'text-orange-600'}">
                                             ${calculations.costo_produccion_litro < 2000 ? '✓ Costos competitivos' : '⚠ Optimizar costos'}
+                                        </div>
+                                    </div>
+
+                                    <div class="border-l-4 border-indigo-500 pl-4">
+                                        <h4 class="font-semibold text-gray-800">Leche Equivalente</h4>
+                                        <p class="text-sm text-gray-600">
+                                            Total: ${formatNumber(calculations.leche_equivalente_total.toFixed(0))} L
+                                        </p>
+                                        <p class="text-sm text-gray-600">
+                                            Por vaca: ${formatNumber(calculations.leche_equivalente_por_vaca.toFixed(0))} L
+                                        </p>
+                                        <div class="text-sm font-medium text-indigo-600">
+                                            📊 Indicador clave de eficiencia total
                                         </div>
                                     </div>
                                 </div>
@@ -1047,6 +1256,12 @@
                                                 <span>Lucro Proyectado:</span>
                                                 <span class="font-bold text-green-600">
                                                     ${formatCurrency(calculations.lucro + (appData.volumen * 0.15 * appData.precio_leche))}
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>Nueva Leche Equiv.:</span>
+                                                <span class="font-bold text-purple-600">
+                                                    ${formatNumber((calculations.leche_equivalente_total * 1.15).toFixed(0))} L
                                                 </span>
                                             </div>
                                         </div>
