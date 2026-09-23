@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Gestión Estratégica Lechera</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .tab-active{border-bottom:2px solid #10b981;color:#059669;background-color:#ecfdf5}
+  .tab-inactive{border-bottom:2px solid transparent;color:#6b7280}
+  .tab-inactive:hover{color:#374151;background-color:#f9fafb}
+  .progress-bar{transition:width .3s ease}
+  .scroll-container{max-height:30rem;overflow-y:auto;padding-right:.35rem}
+  .pulse-save{animation:pulse .5s ease-in-out}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+  input[type=range]{accent-color:#059669;width:100%;cursor:pointer}
+  .num{font-variant-numeric:tabular-nums}
+  .heat td,.heat th{text-align:center;font-size:.75rem;padding:.35rem .3rem;border:1px solid #fff}
+  .tabla td,.tabla th{padding:.4rem .5rem;border-bottom:1px solid #e5e7eb}
+  .tabla th{font-weight:600;color:#374151;background:#f9fafb}
+</style>
+</head>
+<body class="min-h-screen bg-gray-50">
+<div class="bg-green-600 text-white p-6 shadow-lg">
+  <h1 class="text-3xl font-bold">Sistema de Gestión Estratégica Lechera</h1>
+  <p class="text-green-100 mt-2">San Pedro de los Milagros, Antioquia - Colombia</p>
+
+  <!-- Segmentación temporal -->
+  <div class="mt-4 flex flex-wrap items-end gap-4">
+    <div>
+      <label class="block text-xs text-green-100 mb-1">Periodo de análisis</label>
+      <select id="sel-periodo" onchange="setPeriodo(this.value)" class="text-gray-800 rounded-md px-3 py-2 text-sm">
+        <option value="anual">Anualizado</option>
+        <option value="semestral">Semestral</option>
+        <option value="trimestral">Trimestral</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs text-green-100 mb-1">Subperiodo</label>
+      <select id="sel-sub" onchange="setSub(this.value)" class="text-gray-800 rounded-md px-3 py-2 text-sm"></select>
+    </div>
+    <button onclick="toggleEstac()" class="px-3 py-2 bg-green-700 hover:bg-green-800 rounded-md text-sm">Estacionalidad (δt)</button>
+    <span id="periodo-badge" class="text-sm bg-white text-green-700 rounded-full px-3 py-1 font-medium"></span>
+  </div>
+  <div id="estac-panel" class="hidden mt-4 bg-white text-gray-800 rounded-lg p-4 overflow-x-auto"></div>
+
+  <div class="mt-4">
+    <div class="flex justify-between text-sm mb-2">
+      <span>Progreso del registro</span>
+      <span id="progress-text"></span>
+    </div>
+    <div class="w-full bg-green-400 rounded-full h-2">
+      <div id="progress-bar" class="bg-white h-2 rounded-full progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg shadow-sm mb-6 overflow-x-auto">
+    <div class="flex border-b" id="tab-navigation"></div>
+  </div>
+  <div id="tab-content"></div>
+
+  <div class="fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t p-4 z-10">
+    <div class="container mx-auto flex justify-between items-center">
+      <button id="prev-button" onclick="navigateTab(-1)" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>← Anterior</button>
+      <div class="flex items-center space-x-4">
+        <span id="save-status" class="text-sm text-gray-600"></span>
+        <button id="save-button" onclick="saveCurrentData()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">💾 Guardar</button>
+      </div>
+      <button id="next-button" onclick="navigateTab(1)" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">Siguiente →</button>
+    </div>
+  </div>
+  <div class="h-20"></div>
+</div>
+
+<script>
+// =====================================================================
+// 1. CASO DE REFERENCIA «EL PLAN» (Cerón-Muñoz y Guarín, 2025, caps. 3-4)
+//    Calibrado para reproducir: precio $2.108/L, costo $1.750/L,
+//    margen 17,0 %, alimentación 35,4 %, mano de obra 12,3 %,
+//    ingresos $2.003 M, inversión $1.342 M, ROI leche ≈ 24 %.
+//    Todos los valores monetarios se registran en $/año.
+// =====================================================================
+const CASO_EL_PLAN = {
+  vacas:114, area:125, volumen:902300, precio_leche:2108, empleados:7,
+  sistema_produccion:'Pastoreo con suplementación', novillas:101,
+  region:'San Pedro de los Milagros', valor_hectarea:5000000, ensilaje:42,
+  potencial_genetico:25,
+  // Ingresos
+  venta_leche:0, venta_animales:64680000, venta_estiercol:0, otros_ingresos:0,
+  cambio_stock_animales:27500000, cambio_stock_alimentos:9000000,
+  // Gastos básicos (variables)
+  mantenimiento_maquinas:45000000, mantenimiento_instalaciones:45000000, alquiler_maquinas:40000000,
+  energia:90000000, alimentos_comprados:559025000, correctivos_fertilizantes:90000000,
+  productos_quimicos:22000000, semillas:18000000, reproduccion:35000000, salud:55000000,
+  consumibles:50000000, bst:30000000, impuestos:42000000, otros_gastos_basicos:40670000,
+  // Gastos adicionales (fijos)
+  mano_obra_fija:162000000, mano_obra_temporal:32200000, administracion:96000000,
+  intereses_prestamos:45000000,
+  depreciacion_maquinaria:0, depreciacion_instalaciones:0, depreciacion_animales:0,
+  // Inversiones y financiación
+  inversiones_instalaciones:192000000, inversiones_maquinaria:132500000,
+  inversiones_animales:0, inversiones_tierra:0,
+  precio_vaca:2600000, precio_novilla:955000, deuda:300000000,
+  tasa_dep_vacas:20, tasa_dep_instalaciones:5, tasa_dep_maquinaria:10
+};
+
+const KEYS_BASICOS = ['mantenimiento_maquinas','mantenimiento_instalaciones','alquiler_maquinas','energia',
+  'alimentos_comprados','correctivos_fertilizantes','productos_quimicos','semillas','reproduccion','salud',
+  'consumibles','bst','impuestos','otros_gastos_basicos'];
+const KEYS_BASICOS_NO_ALIM = KEYS_BASICOS.filter(k => k !== 'alimentos_comprados');
+
+const SIM_CERO = {precio:0, alim:0, prod:0, mo:0, otros:0, animales:0};
+const PESOS = {productividad:0.25, alimentacion:0.20, calidad:0.20, sanidad:0.20, reproductiva:0.15};
+const DIV = {anual:1, semestral:2, trimestral:4};
+const NOMBRES_SUB = {
+  anual:['Año completo'],
+  semestral:['Semestre 1 (ene–jun)','Semestre 2 (jul–dic)'],
+  trimestral:['Trimestre 1 (ene–mar)','Trimestre 2 (abr–jun)','Trimestre 3 (jul–sep)','Trimestre 4 (oct–dic)']
+};
+const CORTO_SUB = {anual:['Año'], semestral:['S1','S2'], trimestral:['T1','T2','T3','T4']};
+
+// Estado
+let appData = JSON.parse(JSON.stringify(CASO_EL_PLAN));
+let periodo = {tipo:'anual', sub:0};
+let estac = {semestral:{prod:[0,0],precio:[0,0],alim:[0,0]}, trimestral:{prod:[0,0,0,0],precio:[0,0,0,0],alim:[0,0,0,0]}};
+let sim = {...SIM_CERO};
+let sens = {precio:15, alim:20, prod:10, mo:10};
+let mc = {sdPrecio:10, sdAlim:10, sdProd:5, n:2000, resultado:null};
+let plan = {metaMargen:19.8, caidaPrecio:15, horizonte:5, crecPrecio:3, inflCostos:4.5, mejoraProd:1.5, tasaDesc:12};
+let diag = {alimentacion:0.80, calidad:0.85, sanidad:0.80, reproductiva:0.75};
+let eqFactor = 1;   // 1 = convención del libro (1 L de leche EQ = 1 kg); 1.032 = densidad
+let escenarios = [];
+let activeTab = 'datos_generales';
+let aiAnalysis = null, isAnalyzing = false;
+let savedSections = new Set();
+
+const tabs = [
+  {id:'datos_generales', label:'Datos Generales', icon:'calculator', order:0},
+  {id:'ingresos', label:'Ingresos', icon:'trending-up', order:1},
+  {id:'gastos', label:'Gastos', icon:'dollar-sign', order:2},
+  {id:'inversiones', label:'Inversiones', icon:'pie-chart', order:3},
+  {id:'resultados', label:'Resultados', icon:'bar-chart-3', order:4},
+  {id:'indicadores_eq', label:'Indicadores 100 kg EQ', icon:'gauge', order:5},
+  {id:'diagnostico', label:'Diagnóstico', icon:'activity', order:6},
+  {id:'simulador', label:'Simulador', icon:'sliders', order:7},
+  {id:'planificacion', label:'Planificación', icon:'target', order:8},
+  {id:'analisis', label:'Análisis IA', icon:'brain', order:9}
+];
+
+// =====================================================================
+// 2. FORMATO Y UTILIDADES
+// =====================================================================
+function fmtCOP(v){ return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(isFinite(v)?v:0); }
+function fmtNum(v,d=0){ return new Intl.NumberFormat('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d}).format(isFinite(v)?v:0); }
+function fmtPct(v,d=1){ return fmtNum(v*100,d)+' %'; }
+function fmtSigned(v,d=1,suf=' %'){ const s = v>0?'+':(v<0?'−':''); return s+fmtNum(Math.abs(v),d)+suf; }
+function fmtMill(v){ return (v<0?'−':'')+'$'+fmtNum(Math.abs(v)/1e6,1)+' M'; }
+const formatCurrency = fmtCOP;
+const formatNumber = v => fmtNum(v);
+function esc(s){ return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function descargar(contenido, nombre, tipo){
+  const blob = new Blob([contenido], {type:tipo});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nombre; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function etiquetaPeriodo(){ return periodo.tipo==='anual' ? 'Anualizado (12 meses)' : NOMBRES_SUB[periodo.tipo][periodo.sub]; }
+function porPeriodo(){ return {anual:'/año', semestral:'/semestre', trimestral:'/trimestre'}[periodo.tipo]; }
+
+// =====================================================================
+// 3. MODELO DE CÁLCULO
+// =====================================================================
+function calculateAutomaticValues(){
+  const d = appData;
+  d.venta_leche = d.volumen * d.precio_leche;
+  d.inversiones_animales = d.vacas*d.precio_vaca + d.novillas*d.precio_novilla;
+  d.inversiones_tierra = d.area * d.valor_hectarea;
+  d.depreciacion_maquinaria = d.inversiones_maquinaria * d.tasa_dep_maquinaria/100;
+  d.depreciacion_instalaciones = d.inversiones_instalaciones * d.tasa_dep_instalaciones/100;
+  d.depreciacion_animales = d.vacas * d.precio_vaca * d.tasa_dep_vacas/100;
+}
+
+/**
+ * Modelo bioeconómico del periodo.
+ * s: choques del escenario (fracciones). k: subperiodo. tipo: anual|semestral|trimestral.
+ * Supuestos: los flujos anuales se reparten proporcionalmente y se ajustan con δt;
+ * al cambiar la productividad, el costo total no cambia (taller de sensibilidad).
+ */
+function modelo(s = SIM_CERO, k = periodo.sub, tipo = periodo.tipo){
+  calculateAutomaticValues();
+  const d = appData, n = DIV[tipo], f = 1/n, dias = 365*f;
+  const e = tipo==='anual' ? {prod:0,precio:0,alim:0}
+    : {prod:estac[tipo].prod[k]/100, precio:estac[tipo].precio[k]/100, alim:estac[tipo].alim[k]/100};
+
+  const volumen = d.volumen*f*(1+s.prod)*(1+e.prod);
+  const precio = d.precio_leche*(1+s.precio)*(1+e.precio);
+  const venta_leche = volumen*precio;
+  const venta_animales = d.venta_animales*f*(1+s.animales);
+  const venta_estiercol = d.venta_estiercol*f;
+  const otros_ingresos = d.otros_ingresos*f;
+  const cambio_stock_animales = d.cambio_stock_animales*f;
+  const cambio_stock_alimentos = d.cambio_stock_alimentos*f;
+  const total_ingresos = venta_leche+venta_animales+venta_estiercol+otros_ingresos+cambio_stock_animales+cambio_stock_alimentos;
+
+  const alimentos = d.alimentos_comprados*f*(1+s.alim)*(1+e.alim);
+  const otros_basicos = KEYS_BASICOS_NO_ALIM.reduce((a,key) => a+(+d[key]||0), 0)*f*(1+s.otros);
+  const mano_obra = (d.mano_obra_fija+d.mano_obra_temporal)*f*(1+s.mo);
+  const admin_fin = (d.administracion+d.intereses_prestamos)*f*(1+s.otros);
+  const depreciacion = (d.depreciacion_maquinaria+d.depreciacion_instalaciones+d.depreciacion_animales)*f;
+  const gastos_basicos = alimentos+otros_basicos;
+  const gastos_adicionales = mano_obra+admin_fin+depreciacion;
+  const total_gastos = gastos_basicos+gastos_adicionales;
+
+  const total_inversiones = d.inversiones_instalaciones+d.inversiones_maquinaria+d.inversiones_animales+d.inversiones_tierra;
+  const lucro = total_ingresos-total_gastos;
+  const costo_litro = volumen>0 ? total_gastos/volumen : 0;
+  const margen_op = precio>0 ? (precio-costo_litro)/precio : 0;
+  const beneficio_leche = venta_leche-total_gastos;
+  const leche_eq = precio>0 ? total_ingresos/precio : 0;
+  const leche_eq_kg = leche_eq*eqFactor;
+  const l_vaca_dia = d.vacas>0 ? volumen/(d.vacas*dias) : 0;
+  const eo = d.potencial_genetico>0 ? l_vaca_dia/d.potencial_genetico : 0;
+  const roi_leche = total_inversiones>0 ? beneficio_leche/total_inversiones : 0;
+  const roi_total = total_inversiones>0 ? lucro/total_inversiones : 0;
+  const part_alim = total_gastos>0 ? alimentos/total_gastos : 0;
+  const part_mo = total_gastos>0 ? mano_obra/total_gastos : 0;
+
+  return {
+    n, f, dias, precio, volumen, venta_leche, venta_animales, venta_estiercol, otros_ingresos,
+    cambio_stock_animales, cambio_stock_alimentos, total_ingresos,
+    alimentos, otros_basicos, mano_obra, admin_fin, depreciacion,
+    gastos_basicos, gastos_adicionales, total_gastos, total_inversiones,
+    lucro, costo_litro, margen_op, margen_por_litro: precio-costo_litro, beneficio_leche,
+    roi_leche, roi_total, roi_leche_anual: roi_leche*n, roi_total_anual: roi_total*n,
+    leche_eq, leche_eq_kg,
+    leche_eq_vaca: d.vacas>0 ? leche_eq/d.vacas : 0, leche_eq_ha: d.area>0 ? leche_eq/d.area : 0,
+    costo_100kg_leq: leche_eq_kg>0 ? total_gastos/leche_eq_kg*100 : 0,
+    precio_min: costo_litro, bc: total_gastos>0 ? total_ingresos/total_gastos : 0,
+    l_vaca_dia, eo, brecha: 1-eo,
+    litros_por_empleado: d.empleados>0 ? volumen/d.empleados : 0,
+    productividad_por_vaca: d.vacas>0 ? volumen/d.vacas : 0,
+    productividad_por_hectarea: d.area>0 ? volumen/d.area : 0,
+    part_alim, part_mo, part_otros: 1-part_alim-part_mo,
+    // alias de compatibilidad con la versión anterior
+    costo_produccion_litro: costo_litro, retorno_capital: roi_total*100
+  };
+}
+function getCalculations(){ return modelo(); }
+
+// =====================================================================
+// 4. COMPONENTES
+// =====================================================================
+function createIcon(iconName, size=16, className=''){
+  return `<i data-lucide="${iconName}" class="w-${size/4} h-${size/4} ${className}"></i>`;
+}
+function createKPICard(title, valor, icon, color='green', sub=''){
+  return `<div class="bg-white p-4 rounded-lg shadow-md"><div class="flex items-center justify-between gap-2">
+    <div class="min-w-0"><p class="text-sm font-medium text-gray-600">${title}</p>
+    <p class="text-2xl font-bold text-${color}-600 num">${valor}</p>
+    ${sub ? `<p class="text-xs text-gray-500 mt-1">${sub}</p>` : ''}</div>
+    ${createIcon(icon,32,`text-${color}-600 shrink-0`)}</div></div>`;
+}
+function createInputField(label, value, field, type='number', min=0, tooltip='', readonly=false){
+  const tip = tooltip ? `<span class="ml-1 text-gray-400" title="${esc(tooltip)}">${createIcon('info',14,'inline')}</span>` : '';
+  let hint = '';
+  if (type==='number' && Math.abs(value)>=10000){
+    hint = `<p class="text-xs text-gray-500 mt-1 num">≈ ${field==='volumen' ? fmtNum(value)+' L' : fmtCOP(value)}</p>`;
+  }
+  const shown = type==='number' ? (readonly ? Math.round(value) : value) : esc(value);
+  const onch = type==='number' ? 'parseFloat(this.value) || 0' : 'this.value';
+  return `<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">${label}${tip}${readonly ? ' <span class="text-xs text-blue-600">(automático)</span>' : ''}</label>
+    <input type="${type}" value="${shown}" ${type==='number' ? `min="${min}" step="any"` : ''} ${readonly ? 'readonly' : ''}
+      onchange="updateData('${field}', ${onch})"
+      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${readonly ? 'bg-gray-100 cursor-not-allowed' : ''}"/>
+    ${hint}</div>`;
+}
+function createSimpleChart(title, data, formatter){
+  const fmt = formatter || (v => Math.abs(v)>=1e6 ? fmtMill(v) : fmtNum(v));
+  const max = Math.max(...data.map(d => Math.abs(d.value)), 0);
+  const items = data.map(item => {
+    const pct = max>0 ? Math.abs(item.value)/max*100 : 0;
+    return `<div class="flex items-center justify-between gap-2">
+      <span class="text-sm text-gray-600">${item.label}</span>
+      <div class="flex items-center space-x-2">
+        <div class="w-32 bg-gray-200 rounded-full h-2"><div class="${item.value<0?'bg-red-500':'bg-green-500'} h-2 rounded-full progress-bar" style="width:${pct}%"></div></div>
+        <span class="text-sm font-medium w-28 text-right num">${fmt(item.value)}</span>
+      </div></div>`;
+  }).join('');
+  return `<div class="bg-white p-4 rounded-lg shadow-md mb-4"><h4 class="text-lg font-semibold mb-3 text-gray-800">${title}</h4><div class="space-y-2">${items}</div></div>`;
+}
+function fila(label, val, cls='font-medium'){
+  return `<div class="flex justify-between gap-4"><span class="text-gray-600">${label}</span><span class="${cls} num text-right">${val}</span></div>`;
+}
+function tarjeta(titulo, cuerpo, extra=''){
+  return `<div class="bg-white p-6 rounded-lg shadow-md ${extra}"><h3 class="text-xl font-bold text-gray-800 mb-4">${titulo}</h3>${cuerpo}</div>`;
+}
+function colorMargen(m){ return m<0 ? 'red' : m<0.05 ? 'orange' : m<0.12 ? 'yellow' : 'green'; }
+function estadoMargen(m){
+  if (m<0) return 'Pérdida: el precio no cubre el costo';
+  if (m<0.05) return 'Zona crítica: la finca queda al borde de la pérdida';
+  if (m<0.15) return 'Margen estrecho: vulnerable a choques de precio';
+  return 'Margen saludable';
+}
+
+// =====================================================================
+// 5. SEGMENTACIÓN TEMPORAL Y ESTACIONALIDAD
+// =====================================================================
+function updatePeriodoControls(){
+  document.getElementById('sel-periodo').value = periodo.tipo;
+  const sel = document.getElementById('sel-sub');
+  sel.innerHTML = NOMBRES_SUB[periodo.tipo].map((nm,i) => `<option value="${i}" ${i===periodo.sub?'selected':''}>${nm}</option>`).join('');
+  sel.disabled = periodo.tipo==='anual';
+  document.getElementById('periodo-badge').textContent = 'Mostrando: ' + etiquetaPeriodo();
+}
+function setPeriodo(t){ periodo.tipo = t; periodo.sub = 0; updatePeriodoControls(); renderEstacPanel(); renderTabContent(); }
+function setSub(k){ periodo.sub = +k; updatePeriodoControls(); renderTabContent(); }
+function toggleEstac(){ document.getElementById('estac-panel').classList.toggle('hidden'); renderEstacPanel(); }
+
+function renderEstacPanel(){
+  const el = document.getElementById('estac-panel');
+  if (periodo.tipo==='anual'){
+    el.innerHTML = `<p class="text-sm">La estacionalidad se aplica en los análisis semestral y trimestral. Seleccione uno de esos periodos para definir el índice δt de cada subperiodo.</p>`;
+    return;
+  }
+  const t = periodo.tipo, n = DIV[t];
+  const vars = [['prod','Producción de leche'],['precio','Precio de la leche'],['alim','Costo de alimentación']];
+  const filas = vars.map(([v,nm]) => {
+    const celdas = estac[t][v].map((val,k) => `<td class="px-2 py-2 min-w-[9rem]">
+      <input type="range" min="-20" max="20" step="1" value="${val}" oninput="setEstac('${v}',${k},this.value)">
+      <div class="text-center text-xs num" id="e-${v}-${k}">${fmtSigned(val,0)}</div></td>`).join('');
+    const prom = estac[t][v].reduce((a,b)=>a+b,0)/n;
+    return `<tr><td class="text-sm font-medium pr-3">${nm}</td>${celdas}<td class="text-xs text-center num" id="e-avg-${v}">${fmtSigned(prom,1)}</td></tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+      <h4 class="font-semibold">Índices de estacionalidad δt (${t})</h4>
+      <div class="flex gap-2">
+        ${t==='trimestral' ? `<button onclick="presetEstac()" class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded">Ejemplo trópico alto bimodal (ilustrativo)</button>` : ''}
+        <button onclick="resetEstac()" class="px-3 py-1 text-xs bg-gray-100 rounded">Restablecer a 0</button>
+      </div>
+    </div>
+    <table><thead><tr><th></th>${CORTO_SUB[t].map(c=>`<th class="text-xs">${c}</th>`).join('')}<th class="text-xs">Promedio</th></tr></thead><tbody>${filas}</tbody></table>
+    <p class="text-xs text-gray-500 mt-2">El libro sugiere variaciones de hasta ±10 % según la temporada. Para que la suma de subperiodos coincida con el año, procure que el índice de producción promedie 0 %.</p>`;
+}
+function setEstac(v,k,val){
+  estac[periodo.tipo][v][k] = +val;
+  document.getElementById(`e-${v}-${k}`).textContent = fmtSigned(+val,0);
+  const arr = estac[periodo.tipo][v];
+  document.getElementById(`e-avg-${v}`).textContent = fmtSigned(arr.reduce((a,b)=>a+b,0)/arr.length,1);
+  renderTabContent();
+}
+function resetEstac(){ const t = periodo.tipo; ['prod','precio','alim'].forEach(v => estac[t][v] = estac[t][v].map(()=>0)); renderEstacPanel(); renderTabContent(); }
+function presetEstac(){ estac.trimestral.prod = [-6,4,-3,5]; renderEstacPanel(); renderTabContent(); }
+
+// =====================================================================
+// 6. PESTAÑAS ORIGINALES (con precisiones)
+// =====================================================================
+function tabDatos(c){
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    ${createKPICard('Vacas en producción', fmtNum(appData.vacas), 'calculator', 'green', 'cabezas')}
+    ${createKPICard('Área total', fmtNum(appData.area), 'pie-chart', 'blue', 'hectáreas')}
+    ${createKPICard('Producción del periodo', fmtNum(c.volumen)+' L', 'trending-up', 'purple', etiquetaPeriodo())}
+    ${createKPICard('Producción por vaca', fmtNum(c.l_vaca_dia,1)+' L/día', 'activity', 'yellow', `Potencial genético: ${fmtNum(appData.potencial_genetico,1)} L/día`)}
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Datos productivos', `
+      <p class="text-xs text-gray-500 -mt-2 mb-4">Registre valores anuales. El selector del encabezado los reparte por semestre o trimestre.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        ${createInputField('Vacas en producción', appData.vacas, 'vacas', 'number', 0, 'Número de vacas actualmente en producción')}
+        ${createInputField('Área de la finca (ha)', appData.area, 'area', 'number', 0, 'Área total de la finca')}
+        ${createInputField('Volumen anual (L)', appData.volumen, 'volumen', 'number', 0, 'Producción total de leche en el año')}
+        ${createInputField('Precio leche ($/L)', appData.precio_leche, 'precio_leche', 'number', 0, 'Precio promedio pagado por litro')}
+        ${createInputField('Potencial genético (L/vaca/día)', appData.potencial_genetico, 'potencial_genetico', 'number', 0, 'Producción esperada según el mérito genético del hato')}
+        ${createInputField('Número de empleados', appData.empleados, 'empleados')}
+        ${createInputField('Número de novillas', appData.novillas, 'novillas')}
+        ${createInputField('Valor por hectárea ($)', appData.valor_hectarea, 'valor_hectarea', 'number', 0, 'Valor comercial de la tierra')}
+        ${createInputField('Producción de ensilaje (t/ha)', appData.ensilaje, 'ensilaje')}
+        ${createInputField('Región', appData.region, 'region', 'text')}
+        ${createInputField('Sistema de producción', appData.sistema_produccion, 'sistema_produccion', 'text')}
+      </div>`)}
+    <div class="space-y-4">
+      ${createSimpleChart(`Indicadores de productividad (${etiquetaPeriodo()})`, [
+        {label:'Litros/vaca/día', value:+c.l_vaca_dia.toFixed(1)},
+        {label:'Litros/vaca'+porPeriodo(), value:Math.round(c.productividad_por_vaca)},
+        {label:'Litros/hectárea'+porPeriodo(), value:Math.round(c.productividad_por_hectarea)},
+        {label:'Litros/empleado'+porPeriodo(), value:Math.round(c.litros_por_empleado)},
+        {label:'Vacas/hectárea', value:+(appData.vacas/appData.area).toFixed(2)}
+      ], v => fmtNum(v, v%1 ? 1 : 0))}
+      <div class="bg-white p-4 rounded-lg shadow-md"><h4 class="text-lg font-semibold mb-3 text-gray-800">Información adicional</h4>
+        <div class="space-y-2 text-sm">
+          ${fila('Región', esc(appData.region))}
+          ${fila('Sistema', esc(appData.sistema_produccion))}
+          ${fila('Carga animal (vacas + novillas)', fmtNum((appData.vacas+appData.novillas)/appData.area,2)+' animales/ha')}
+          ${fila('Eficiencia operativa (real / potencial)', fmtPct(c.eo))}
+        </div></div>
+      <div class="bg-white p-4 rounded-lg shadow-md"><h4 class="text-lg font-semibold mb-2 text-gray-800">Caso de referencia y respaldo</h4>
+        <p class="text-sm text-gray-600 mb-3">Los valores iniciales reproducen la finca «El Plan» (Cerón-Muñoz y Guarín, 2025, caps. 3 y 4): precio $2.108/L, costo $1.750/L, margen 17,0 %.</p>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="restaurarElPlan()" class="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700">Restaurar «El Plan»</button>
+          <button onclick="exportarJSON()" class="px-3 py-2 text-sm bg-gray-700 text-white rounded-md hover:bg-gray-800">Exportar datos (JSON)</button>
+          <label class="px-3 py-2 text-sm bg-gray-200 rounded-md cursor-pointer hover:bg-gray-300">Importar JSON
+            <input type="file" accept=".json,application/json" class="hidden" onchange="importarJSON(event)"></label>
+        </div></div>
+    </div>
+  </div></div>`;
+}
+
+function tabIngresos(c){
+  const otros = c.total_ingresos - c.venta_leche;
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    ${createKPICard('Ingresos totales', fmtMill(c.total_ingresos), 'trending-up', 'green', etiquetaPeriodo())}
+    ${createKPICard('Venta de leche', fmtMill(c.venta_leche), 'dollar-sign', 'blue', `${fmtNum(c.volumen)} L × ${fmtCOP(c.precio)}/L`)}
+    ${createKPICard('Otros ingresos', fmtMill(otros), 'pie-chart', 'purple', 'Animales, estiércol e inventario')}
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Ingresos operativos ($/año)', `
+      ${createInputField('Venta de leche ($/año)', appData.venta_leche, 'venta_leche', 'number', 0, 'Volumen × precio', true)}
+      ${createInputField('Venta de animales ($/año)', appData.venta_animales, 'venta_animales', 'number', 0, 'Venta de machos, descartes y excedentes')}
+      ${createInputField('Venta de estiércol ($/año)', appData.venta_estiercol, 'venta_estiercol')}
+      ${createInputField('Otros ingresos ($/año)', appData.otros_ingresos, 'otros_ingresos')}
+      ${createInputField('Cambio en inventario de animales ($/año)', appData.cambio_stock_animales, 'cambio_stock_animales', 'number', -1e15, 'Puede ser negativo')}
+      ${createInputField('Cambio en inventario de alimentos ($/año)', appData.cambio_stock_alimentos, 'cambio_stock_alimentos', 'number', -1e15, 'Puede ser negativo')}`)}
+    <div class="space-y-4">
+      ${createSimpleChart(`Composición de ingresos (${etiquetaPeriodo()})`, [
+        {label:'Venta de leche', value:c.venta_leche},
+        {label:'Venta de animales', value:c.venta_animales},
+        {label:'Venta de estiércol', value:c.venta_estiercol},
+        {label:'Cambio inventario animales', value:c.cambio_stock_animales},
+        {label:'Cambio inventario alimentos', value:c.cambio_stock_alimentos},
+        {label:'Otros ingresos', value:c.otros_ingresos}
+      ])}
+      <div class="bg-white p-4 rounded-lg shadow-md"><h4 class="text-lg font-semibold mb-3 text-gray-800">Análisis de ingresos</h4>
+        <div class="space-y-2 text-sm">
+          ${fila('Participación de la leche', fmtPct(c.total_ingresos>0 ? c.venta_leche/c.total_ingresos : 0))}
+          ${fila('Ingreso por vaca'+porPeriodo(), fmtCOP(c.total_ingresos/appData.vacas))}
+          ${fila('Ingreso por hectárea'+porPeriodo(), fmtCOP(c.total_ingresos/appData.area))}
+          ${fila('Ingreso total por litro vendido', fmtCOP(c.volumen>0 ? c.total_ingresos/c.volumen : 0))}
+          ${fila('Leche equivalente (ingresos / precio)', fmtNum(c.leche_eq)+' L')}
+        </div></div>
+    </div>
+  </div></div>`;
+}
+
+function tabGastos(c){
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    ${createKPICard('Gastos básicos (variables)', fmtMill(c.gastos_basicos), 'dollar-sign', 'red', etiquetaPeriodo())}
+    ${createKPICard('Gastos adicionales (fijos)', fmtMill(c.gastos_adicionales), 'trending-up', 'orange', 'Incluye depreciación')}
+    ${createKPICard('Costo por litro', fmtCOP(c.costo_litro)+'/L', 'calculator', 'purple', `Gasto total: ${fmtMill(c.total_gastos)}`)}
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Gastos básicos ($/año)', `<div class="scroll-container">
+      ${createInputField('Alimentos comprados', appData.alimentos_comprados, 'alimentos_comprados', 'number', 0, 'Concentrados, sales, heno, subproductos')}
+      ${createInputField('Mantenimiento maquinaria', appData.mantenimiento_maquinas, 'mantenimiento_maquinas')}
+      ${createInputField('Mantenimiento instalaciones', appData.mantenimiento_instalaciones, 'mantenimiento_instalaciones', 'number', 0, 'Si supera 30 % del valor del bien, considérelo inversión')}
+      ${createInputField('Alquiler de máquinas', appData.alquiler_maquinas, 'alquiler_maquinas')}
+      ${createInputField('Energía y combustibles', appData.energia, 'energia')}
+      ${createInputField('Correctivos y fertilizantes', appData.correctivos_fertilizantes, 'correctivos_fertilizantes')}
+      ${createInputField('Productos químicos', appData.productos_quimicos, 'productos_quimicos')}
+      ${createInputField('Semillas', appData.semillas, 'semillas')}
+      ${createInputField('Reproducción', appData.reproduccion, 'reproduccion')}
+      ${createInputField('Sanidad', appData.salud, 'salud')}
+      ${createInputField('Material de consumo', appData.consumibles, 'consumibles')}
+      ${createInputField('BST', appData.bst, 'bst')}
+      ${createInputField('Impuestos', appData.impuestos, 'impuestos')}
+      ${createInputField('Otros gastos operativos', appData.otros_gastos_basicos, 'otros_gastos_basicos')}
+    </div>`)}
+    <div class="space-y-4">
+      ${tarjeta('Gastos adicionales ($/año)', `
+        ${createInputField('Mano de obra fija', appData.mano_obra_fija, 'mano_obra_fija', 'number', 0, 'Salarios, prestaciones, vacaciones')}
+        ${createInputField('Mano de obra temporal', appData.mano_obra_temporal, 'mano_obra_temporal')}
+        ${createInputField('Administración', appData.administracion, 'administracion')}
+        ${createInputField('Intereses de préstamos', appData.intereses_prestamos, 'intereses_prestamos')}
+        ${createInputField('Depreciación maquinaria', appData.depreciacion_maquinaria, 'depreciacion_maquinaria', 'number', 0, 'Inversión × tasa (pestaña Inversiones)', true)}
+        ${createInputField('Depreciación instalaciones', appData.depreciacion_instalaciones, 'depreciacion_instalaciones', 'number', 0, 'Inversión × tasa', true)}
+        ${createInputField('Depreciación vacas', appData.depreciacion_animales, 'depreciacion_animales', 'number', 0, 'Valor de vacas × tasa', true)}`)}
+      ${createSimpleChart(`Principales componentes (${etiquetaPeriodo()})`, [
+        {label:'Alimentación', value:c.alimentos},
+        {label:'Mano de obra', value:c.mano_obra},
+        {label:'Otros básicos', value:c.otros_basicos},
+        {label:'Administración e intereses', value:c.admin_fin},
+        {label:'Depreciación', value:c.depreciacion}
+      ])}
+      <div class="bg-white p-4 rounded-lg shadow-md"><h4 class="text-lg font-semibold mb-3 text-gray-800">Estructura de costos</h4>
+        <div class="space-y-2 text-sm">
+          ${fila('Alimentación / costo total', fmtPct(c.part_alim)+' <span class="text-gray-400">(ref. 35,4 %)</span>')}
+          ${fila('Mano de obra / costo total', fmtPct(c.part_mo)+' <span class="text-gray-400">(ref. 12,3 %)</span>')}
+          ${fila('Otros costos / costo total', fmtPct(c.part_otros)+' <span class="text-gray-400">(ref. 52,3 %)</span>')}
+          ${fila('Costo por vaca'+porPeriodo(), fmtCOP(c.total_gastos/appData.vacas))}
+          ${fila('Costo por 100 kg de leche equivalente', fmtCOP(c.costo_100kg_leq))}
+          ${fila('Litros por empleado'+porPeriodo(), fmtNum(c.litros_por_empleado))}
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Referencias: sistema semi-intensivo con suplementación (cap. 4). Base de leche EQ: ${eqFactor===1 ? '1 L = 1 kg (convención del libro)' : '1,032 kg/L'}.</p></div>
+    </div>
+  </div></div>`;
+}
+
+function tabInversiones(c){
+  const a = modelo(SIM_CERO, 0, 'anual');
+  const depAnual = appData.depreciacion_maquinaria+appData.depreciacion_instalaciones+appData.depreciacion_animales;
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    ${createKPICard('Inversión total', fmtMill(c.total_inversiones), 'pie-chart', 'blue', 'Valor de activos (no se prorratea)')}
+    ${createKPICard('Tierra', fmtMill(appData.inversiones_tierra), 'trending-up', 'green', `${fmtNum(appData.area)} ha × ${fmtCOP(appData.valor_hectarea)}`)}
+    ${createKPICard('Animales', fmtMill(appData.inversiones_animales), 'calculator', 'purple', `${appData.vacas} vacas + ${appData.novillas} novillas`)}
+    ${createKPICard('Infraestructura', fmtMill(appData.inversiones_instalaciones+appData.inversiones_maquinaria), 'dollar-sign', 'orange', 'Instalaciones y maquinaria')}
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Inversiones por categoría', `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        ${createInputField('Instalaciones ($)', appData.inversiones_instalaciones, 'inversiones_instalaciones')}
+        ${createInputField('Maquinaria y equipo ($)', appData.inversiones_maquinaria, 'inversiones_maquinaria')}
+        ${createInputField('Precio promedio por vaca ($)', appData.precio_vaca, 'precio_vaca')}
+        ${createInputField('Precio promedio por novilla ($)', appData.precio_novilla, 'precio_novilla')}
+        ${createInputField('Animales ($)', appData.inversiones_animales, 'inversiones_animales', 'number', 0, 'Vacas × precio + novillas × precio', true)}
+        ${createInputField('Tierra ($)', appData.inversiones_tierra, 'inversiones_tierra', 'number', 0, 'Área × valor por hectárea', true)}
+        ${createInputField('Deuda / capital de terceros ($)', appData.deuda, 'deuda', 'number', 0, 'Saldo de créditos que financian la finca. Valor ilustrativo: el libro no reporta la deuda de «El Plan»')}
+      </div>
+      <h4 class="font-semibold text-gray-800 mt-2 mb-2">Tasas de depreciación anual (%)</h4>
+      <div class="grid grid-cols-3 gap-x-3">
+        ${createInputField('Vacas', appData.tasa_dep_vacas, 'tasa_dep_vacas', 'number', 0, 'Referencia del libro: 20 %')}
+        ${createInputField('Instalaciones', appData.tasa_dep_instalaciones, 'tasa_dep_instalaciones', 'number', 0, 'Referencia: 5 %')}
+        ${createInputField('Maquinaria', appData.tasa_dep_maquinaria, 'tasa_dep_maquinaria', 'number', 0, 'Referencia: 10 % ordeño, 15 % refrigeración')}
+      </div>`)}
+    <div class="space-y-4">
+      ${createSimpleChart('Distribución de la inversión', [
+        {label:'Tierra', value:appData.inversiones_tierra},
+        {label:'Animales', value:appData.inversiones_animales},
+        {label:'Instalaciones', value:appData.inversiones_instalaciones},
+        {label:'Maquinaria', value:appData.inversiones_maquinaria}
+      ])}
+      <div class="bg-white p-4 rounded-lg shadow-md"><h4 class="text-lg font-semibold mb-3 text-gray-800">Análisis de la inversión</h4>
+        <div class="space-y-2 text-sm">
+          ${fila('Inversión por vaca', fmtCOP(c.total_inversiones/appData.vacas))}
+          ${fila('Inversión por hectárea', fmtCOP(c.total_inversiones/appData.area))}
+          ${fila('Inversión por litro anual', fmtCOP(c.total_inversiones/appData.volumen))}
+          ${fila('Rotación de activos (ingresos anuales / inversión)', fmtNum(a.total_ingresos/c.total_inversiones,2))}
+          ${fila('Depreciación anual total', fmtCOP(depAnual))}
+          ${fila('ROI operativo de la leche (anual)', fmtPct(a.roi_leche))}
+        </div></div>
+    </div>
+  </div></div>`;
+}
+
+function vistaTemporal(){
+  const tipo = periodo.tipo==='anual' ? 'trimestral' : periodo.tipo;
+  const n = DIV[tipo];
+  const cols = Array.from({length:n}, (_,k) => modelo(SIM_CERO, k, tipo));
+  const anual = modelo(SIM_CERO, 0, 'anual');
+  const suma = key => cols.reduce((a,c) => a+c[key], 0);
+  const vol = suma('volumen'), vl = suma('venta_leche'), g = suma('total_gastos'), ing = suma('total_ingresos');
+  const pProm = vol>0 ? vl/vol : 0, cProm = vol>0 ? g/vol : 0;
+  const filas = [
+    ['Producción (L)', c => fmtNum(c.volumen), fmtNum(vol)],
+    ['Precio ($/L)', c => fmtCOP(c.precio), fmtCOP(pProm)],
+    ['Ingresos', c => fmtMill(c.total_ingresos), fmtMill(ing)],
+    ['Gastos', c => fmtMill(c.total_gastos), fmtMill(g)],
+    ['Resultado', c => fmtMill(c.lucro), fmtMill(ing-g)],
+    ['Costo por litro', c => fmtCOP(c.costo_litro), fmtCOP(cProm)],
+    ['Margen operativo', c => fmtPct(c.margen_op), fmtPct(pProm>0 ? (pProm-cProm)/pProm : 0)],
+    ['L/vaca/día', c => fmtNum(c.l_vaca_dia,1), fmtNum(vol/(appData.vacas*365),1)]
+  ];
+  const dif = anual.total_ingresos>0 ? (ing-anual.total_ingresos)/anual.total_ingresos : 0;
+  return tarjeta(periodo.tipo==='anual' ? 'Vista temporal: desagregación trimestral de referencia' : `Vista temporal ${tipo}`, `
+    <div class="overflow-x-auto"><table class="tabla w-full text-sm num">
+      <thead><tr><th class="text-left">Indicador</th>${CORTO_SUB[tipo].map((s,k) => `<th class="${periodo.tipo!=='anual' && k===periodo.sub ? 'bg-green-100' : ''}">${s}</th>`).join('')}<th>Total / promedio</th></tr></thead>
+      <tbody>${filas.map(([nm,fn,tot]) => `<tr><td class="text-left">${nm}</td>${cols.map((c,k) => `<td class="text-right ${periodo.tipo!=='anual' && k===periodo.sub ? 'bg-green-50' : ''}">${fn(c)}</td>`).join('')}<td class="text-right font-semibold">${tot}</td></tr>`).join('')}</tbody>
+    </table></div>
+    ${Math.abs(dif)>0.005 ? `<p class="text-xs text-orange-600 mt-2">Los índices de estacionalidad no promedian cero: la suma de subperiodos difiere del año base en ${fmtSigned(dif*100,1)}.</p>` : ''}
+    <p class="text-xs text-gray-500 mt-2">Los gastos fijos y la depreciación se reparten en partes iguales; la producción, el precio y la alimentación siguen los índices δt.</p>`);
+}
+
+function tabResultados(c){
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    ${createKPICard('Resultado del periodo', fmtMill(c.lucro), 'trending-up', c.lucro>0?'green':'red', etiquetaPeriodo())}
+    ${createKPICard('Margen operativo', fmtPct(c.margen_op), 'pie-chart', colorMargen(c.margen_op), '(Precio − Costo) / Precio')}
+    ${createKPICard('ROI de la leche', fmtPct(c.roi_leche_anual), 'calculator', c.roi_leche_anual>0?'green':'red', periodo.tipo==='anual' ? 'Anual' : 'Anualizado desde el periodo')}
+    ${createKPICard('Costo por litro', fmtCOP(c.costo_litro)+'/L', 'bar-chart-3', 'blue', `Precio: ${fmtCOP(c.precio)}/L`)}
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta(`Resultados financieros (${etiquetaPeriodo()})`, `<div class="space-y-3">
+      ${fila('Ingresos totales', fmtCOP(c.total_ingresos), 'text-green-600 font-bold')}
+      ${fila('Gastos básicos', fmtCOP(c.gastos_basicos), 'text-red-600')}
+      ${fila('Gastos adicionales', fmtCOP(c.gastos_adicionales), 'text-red-600')}
+      ${fila('Gastos totales', fmtCOP(c.total_gastos), 'text-red-600 font-bold')}
+      <div class="border-t pt-3">${fila('<b class="text-lg text-gray-800">Resultado (lucro)</b>', fmtCOP(c.lucro), `font-bold text-lg ${c.lucro>0?'text-green-600':'text-red-600'}`)}</div>
+      ${fila('Beneficio operativo de la leche', fmtCOP(c.beneficio_leche))}
+      ${fila('Relación beneficio/costo (ingresos / costos)', fmtNum(c.bc,2))}
+      ${fila('ROI total anualizado (incluye animales e inventario)', fmtPct(c.roi_total_anual))}
+    </div>`)}
+    ${tarjeta('Los cinco indicadores del caso', `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+      ${[
+        ['Margen operativo', '(Precio − Costo) / Precio', fmtPct(c.margen_op), 'De cada peso recibido por la leche, lo que queda tras cubrir el costo.'],
+        ['Eficiencia operativa', 'Producción real / esperada', fmtPct(c.eo), `Brecha frente al potencial: ${fmtPct(c.brecha)}.`],
+        ['Leche equivalente', 'Ingresos totales / Precio', fmtNum(c.leche_eq)+' L', `${fmtNum(c.leche_eq_vaca)} L/vaca · ${fmtNum(c.leche_eq_ha)} L/ha`],
+        ['Precio mínimo viable', '= Costo unitario', fmtCOP(c.precio_min)+'/L', `El precio puede caer ${fmtPct(Math.max(c.margen_op,0))} antes de generar pérdidas.`],
+        ['ROI de la leche', 'Beneficio leche / Inversión', fmtPct(c.roi_leche_anual), 'Cuánto rinde el capital en tierra, animales, instalaciones y maquinaria.']
+      ].map(([t,eq,v,txt]) => `<div class="border rounded-lg p-3"><p class="font-semibold text-gray-800">${t}</p><p class="text-xs text-gray-500">${eq}</p><p class="text-xl font-bold text-green-700 num my-1">${v}</p><p class="text-xs text-gray-600">${txt}</p></div>`).join('')}
+      <div class="border rounded-lg p-3 bg-blue-50 text-xs text-blue-900">El margen responde cuánto queda de cada litro; el ROI, cuánto rinde el capital invertido. Una finca puede tener buen margen y mal retorno, o al revés.</div>
+    </div>`)}
+  </div>
+  ${vistaTemporal()}
+  </div>`;
+}
+
+// =====================================================================
+// 7. MÓDULO: INDICADORES POR 100 kg DE LECHE EQUIVALENTE
+//    Libro, cap. 4 (sec. 4.1.3 y 4.1.4; ec. 4.2 y 4.3) y documento
+//    «La planeación estratégica realizada anualmente» (metas y benchmarks)
+// =====================================================================
+const ETIQ_GASTOS = {
+  mantenimiento_maquinas:'Mantenimiento maquinaria', mantenimiento_instalaciones:'Mantenimiento instalaciones',
+  alquiler_maquinas:'Alquiler de máquinas', energia:'Energía y combustibles', alimentos_comprados:'Alimentos comprados',
+  correctivos_fertilizantes:'Correctivos y fertilizantes', productos_quimicos:'Productos químicos', semillas:'Semillas',
+  reproduccion:'Reproducción', salud:'Sanidad', consumibles:'Material de consumo', bst:'BST', impuestos:'Impuestos',
+  otros_gastos_basicos:'Otros gastos operativos'
+};
+// Gastos como % de los ingresos (documento de planeación estratégica)
+const REF_PCT_INGRESOS = {
+  alimentos_comprados:50, mano_obra:10, salud:2.5, reproduccion:1.5, consumibles:2, bst:3,
+  otros_gastos_basicos:2.5, mantenimiento_instalaciones:1, mantenimiento_maquinas:3, impuestos:2.5, depreciacion:5
+};
+
+function setEqFactor(v){ eqFactor = +v; renderTabContent(); }
+
+// Desglose por rubro, coherente con los agregados del modelo (periodo, estacionalidad y escenario)
+function desglose(s = SIM_CERO, k = periodo.sub, tipo = periodo.tipo){
+  const c = modelo(s, k, tipo), d = appData, f = c.f;
+  const ingresos = [
+    ['Venta de leche', c.venta_leche], ['Venta de animales', c.venta_animales], ['Venta de estiércol', c.venta_estiercol],
+    ['Otros ingresos', c.otros_ingresos], ['Cambio inventario de animales', c.cambio_stock_animales],
+    ['Cambio inventario de alimentos', c.cambio_stock_alimentos]
+  ].map(([label, valor]) => ({label, valor}));
+  const basicos = KEYS_BASICOS.map(key => ({
+    label: ETIQ_GASTOS[key],
+    valor: key==='alimentos_comprados' ? c.alimentos : (+d[key]||0)*f*(1+s.otros),
+    ref: REF_PCT_INGRESOS[key]
+  }));
+  const adicionales = [
+    {label:'Mano de obra (fija + temporal)', valor:c.mano_obra, ref:REF_PCT_INGRESOS.mano_obra},
+    {label:'Administración', valor:d.administracion*f*(1+s.otros)},
+    {label:'Intereses de préstamos', valor:d.intereses_prestamos*f*(1+s.otros)},
+    {label:'Depreciación (maquinaria, instalaciones, vacas)', valor:c.depreciacion, ref:REF_PCT_INGRESOS.depreciacion}
+  ];
+  return {c, ingresos, basicos, adicionales};
+}
+
+// Indicadores económicos; los que relacionan flujos con capital se anualizan
+function indicadoresEq(c){
+  const d = appData, n = c.n, ing = c.total_ingresos, inv = c.total_inversiones;
+  const deuda = Math.min(Math.max(+d.deuda||0, 0), inv), propio = inv - deuda;
+  const kgEqAnual = c.leche_eq_kg * n;
+  const mlrb = ing>0 ? c.lucro/ing : 0;              // Margen neto / ingresos brutos
+  const rbct = inv>0 ? ing*n/inv : 0;                 // Ingresos brutos / capital total
+  const ctcp = propio>0 ? inv/propio : NaN;           // Capital total / capital propio
+  return {
+    por100: v => c.leche_eq_kg>0 ? v*100/c.leche_eq_kg : 0,   // ec. 4.2
+    ca: ing>0 ? c.alimentos/ing : 0,                          // CA%Rec
+    mo: ing>0 ? c.mano_obra/ing : 0,                          // MO%Rec
+    mlrb, rbct, ctcp,
+    rscp: isFinite(ctcp) ? mlrb*rbct*ctcp : NaN,              // = lucro anualizado / capital propio
+    roi: c.roi_total_anual,                                   // ec. 4.3
+    deuda, propio, deudaInv: inv>0 ? deuda/inv : 0,
+    invVaca: inv/d.vacas, deudaVaca: deuda/d.vacas,
+    invKgEq: kgEqAnual>0 ? inv/kgEqAnual : 0,
+    invKgEqL: kgEqAnual>0 && c.precio>0 ? inv/kgEqAnual/c.precio : 0,
+    kgEqAnual
+  };
+}
+
+function tabIndicadoresEq(c){
+  const {ingresos, basicos, adicionales} = desglose();
+  const I = indicadoresEq(c);
+  const s = modelo(sim), Is = indicadoresEq(s);
+  const hayEsc = Object.values(sim).some(v => Math.abs(v)>1e-9);
+  const ing = c.total_ingresos;
+  const pct = v => ing>0 ? v/ing : 0;
+  const V = 'bg-green-100 text-green-800', A = 'bg-yellow-100 text-yellow-800', R = 'bg-red-100 text-red-800';
+  const chip = (cl, txt) => `<span class="px-2 py-0.5 rounded text-xs whitespace-nowrap ${cl}">${txt}</span>`;
+  const estadoRef = (v, ref) => {
+    if (ref==null) return '';
+    const p = pct(v)*100;
+    return p<=ref ? chip(V,'En referencia') : p<=ref*1.2 ? chip(A,'Vigilar') : chip(R,'Por encima');
+  };
+  const sem = (ok, warn) => ok ? chip(V,'Cumple') : warn ? chip(A,'Vigilar') : chip(R,'No cumple');
+  const filaDet = (label, valor, ref) => `<tr><td class="text-left pl-4">${label}</td><td class="text-right">${fmtCOP(valor)}</td>
+    <td class="text-right font-medium">${fmtCOP(I.por100(valor))}</td><td class="text-right">${fmtPct(pct(valor))}</td>
+    <td class="text-right text-gray-500">${ref!=null ? fmtNum(ref,1)+' %' : '—'}</td><td class="text-center">${estadoRef(valor,ref)}</td></tr>`;
+  const encab = t => `<tr><td colspan="6" class="text-left font-semibold text-gray-700 bg-gray-50">${t}</td></tr>`;
+  const tot = (label, valor, cls) => `<tr class="font-semibold ${cls}"><td class="text-left">${label}</td><td class="text-right">${fmtCOP(valor)}</td>
+    <td class="text-right">${fmtCOP(I.por100(valor))}</td><td class="text-right">${fmtPct(pct(valor))}</td><td></td><td></td></tr>`;
+
+  const resumen = [
+    ['Ingresos brutos', c.total_ingresos, s.total_ingresos],
+    ['Gastos básicos', c.gastos_basicos, s.gastos_basicos],
+    ['Gastos adicionales', c.gastos_adicionales, s.gastos_adicionales],
+    ['Costo total (ec. 4.2)', c.total_gastos, s.total_gastos],
+    ['Lucro', c.lucro, s.lucro]
+  ];
+  const wB = Math.max(pct(c.gastos_basicos)*100,0), wA = Math.max(pct(c.gastos_adicionales)*100,0);
+  const wBv = Math.min(wB,100), wAv = Math.min(wA,100-wBv), wL = Math.max(0,100-wBv-wAv);
+
+  const efGlobal = 1-(I.ca+I.mo);
+  const metas = [
+    ['CA%Rec', 'Alimentos comprados / ingresos brutos', fmtPct(I.ca), '≤ 50 %', sem(I.ca<=0.50, I.ca<=0.60)],
+    ['MO%Rec', 'Mano de obra / ingresos brutos', fmtPct(I.mo), '≤ 10 %', sem(I.mo<=0.10, I.mo<=0.12)],
+    ['Eficiencia global', '1 − (CA%Rec + MO%Rec), caso 2 del cap. 4', fmtPct(efGlobal), '—', ''],
+    ['Margen neto sobre ingresos (MLRb)', 'Lucro / ingresos brutos', fmtPct(I.mlrb), '10–15 %', sem(I.mlrb>=0.10, I.mlrb>=0.05)],
+    ['Ingresos / capital total (RbCt)', 'Equivale a «Ingresos/Patrimonio» y a la productividad del capital del libro', `${fmtNum(I.rbct,2)} (${fmtPct(I.rbct,0)})`, '≥ 0,5', sem(I.rbct>=0.5, I.rbct>=0.4)],
+    ['Capital total / capital propio (CtCp)', 'Solvencia', isFinite(I.ctcp) ? fmtNum(I.ctcp,2) : '—', '≤ 1,3', isFinite(I.ctcp) ? sem(I.ctcp<=1.3, I.ctcp<=1.5) : chip(R,'Sin capital propio')],
+    ['Rentabilidad sobre capital propio (RSCp)', 'MLRb × RbCt × CtCp', isFinite(I.rscp) ? fmtPct(I.rscp) : '—', '≥ 6–9 %', isFinite(I.rscp) ? sem(I.rscp>=0.06, I.rscp>=0.03) : ''],
+    ['Retorno sobre la inversión (ROI, ec. 4.3)', 'Lucro / inversión total', fmtPct(I.roi), '≥ 6–9 %', sem(I.roi>=0.06, I.roi>=0.03)],
+    ['Deuda / inversión', 'Deuda por vaca / inversión por vaca', fmtPct(I.deudaInv), '< 25 %', sem(I.deudaInv<0.25, I.deudaInv<0.35)],
+    ['Inversión por kg EQ, en litros de leche', 'Inversión / (kg EQ anual × precio)', fmtNum(I.invKgEqL,2)+' L', '≤ 2,22 L', sem(I.invKgEqL<=2.22, I.invKgEqL<=2.7)]
+  ];
+
+  const tipoT = periodo.tipo==='anual' ? 'trimestral' : periodo.tipo;
+  const cols = Array.from({length:DIV[tipoT]}, (_,k) => modelo(SIM_CERO, k, tipoT));
+  const p100 = (m, v) => m.leche_eq_kg>0 ? v*100/m.leche_eq_kg : 0;
+  const filasT = [
+    ['Leche equivalente (kg)', m => fmtNum(m.leche_eq_kg)],
+    ['Ingresos brutos', m => fmtCOP(p100(m, m.total_ingresos))],
+    ['Gastos básicos', m => fmtCOP(p100(m, m.gastos_basicos))],
+    ['Gastos adicionales', m => fmtCOP(p100(m, m.gastos_adicionales))],
+    ['Costo total', m => fmtCOP(p100(m, m.total_gastos))],
+    ['Lucro', m => fmtCOP(p100(m, m.lucro))]
+  ];
+
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    ${createKPICard('Leche equivalente', fmtNum(c.leche_eq_kg)+' kg', 'trending-up', 'green', `${etiquetaPeriodo()} · ingresos / precio`)}
+    ${createKPICard('kg EQ por vaca', fmtNum(c.leche_eq_kg/appData.vacas), 'activity', 'blue', `Anualizado: ${fmtNum(I.kgEqAnual/appData.vacas)} kg/vaca/año`)}
+    ${createKPICard('kg EQ por hectárea', fmtNum(c.leche_eq_kg/appData.area), 'pie-chart', 'purple', `Anualizado: ${fmtNum(I.kgEqAnual/appData.area)} kg/ha/año`)}
+    ${createKPICard('Costo total por 100 kg EQ', fmtCOP(I.por100(c.total_gastos)), 'calculator', 'orange', `Lucro: ${fmtCOP(I.por100(c.lucro))} por 100 kg EQ`)}
+  </div>
+
+  <div class="bg-white p-4 rounded-lg shadow-md flex flex-wrap items-center gap-3 text-sm">
+    <span class="font-medium">Base de conversión:</span>
+    <select onchange="setEqFactor(this.value)" class="px-2 py-1 border rounded">
+      <option value="1" ${eqFactor===1 ? 'selected' : ''}>1 L = 1 kg (convención del libro)</option>
+      <option value="1.032" ${eqFactor!==1 ? 'selected' : ''}>Densidad de la leche: 1,032 kg/L</option>
+    </select>
+    <span class="text-gray-500 flex-1 min-w-[16rem]">Leche EQ = Ingresos totales / Precio de la leche${eqFactor!==1 ? ' × 1,032' : ''}. Por construcción, el ingreso por 100 kg EQ equivale a 100 × precio${eqFactor!==1 ? ' / 1,032' : ''}; lo que distingue a una finca de otra es el costo y el lucro por 100 kg EQ.</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Resultados por 100 kg de leche equivalente', `
+      <table class="tabla w-full text-sm num"><thead><tr><th class="text-left">$/100 kg EQ</th><th class="text-right">Caso base</th>${hayEsc ? '<th class="text-right">Escenario simulador</th>' : ''}</tr></thead>
+      <tbody>${resumen.map(([nm,b,e]) => `<tr><td>${nm}</td><td class="text-right font-semibold ${b<0 ? 'text-red-600' : ''}">${fmtCOP(I.por100(b))}</td>${hayEsc ? `<td class="text-right ${e<0 ? 'text-red-600' : ''}">${fmtCOP(Is.por100(e))}</td>` : ''}</tr>`).join('')}</tbody></table>
+      <p class="text-xs text-gray-500 mt-4 mb-1">Destino de cada $100 de ingreso</p>
+      <div class="w-full h-7 flex rounded overflow-hidden text-xs text-white">
+        <div class="bg-red-500 flex items-center justify-center" style="width:${wBv}%">Básicos ${fmtNum(wB,0)} %</div>
+        <div class="bg-orange-400 flex items-center justify-center" style="width:${wAv}%">${wAv>8 ? 'Adic. '+fmtNum(wA,0)+' %' : ''}</div>
+        <div class="bg-green-600 flex items-center justify-center" style="width:${wL}%">${wL>8 ? 'Lucro '+fmtNum(wL,0)+' %' : ''}</div>
+      </div>
+      ${hayEsc ? '' : '<p class="text-xs text-gray-500 mt-3">Mueva las palancas del Simulador para comparar aquí un escenario.</p>'}`)}
+    ${tarjeta('Estructura de capital', `<div class="space-y-2 text-sm">
+      ${fila('Capital total (inversión)', fmtCOP(c.total_inversiones))}
+      ${fila('Deuda (capital de terceros)', fmtCOP(I.deuda))}
+      ${fila('Capital propio (patrimonio)', fmtCOP(I.propio))}
+      ${fila('Inversión por vaca', fmtCOP(I.invVaca))}
+      ${fila('Deuda por vaca', fmtCOP(I.deudaVaca))}
+      ${fila('Inversión por kg EQ anual', fmtCOP(I.invKgEq)+'/kg')}
+      ${fila('Inversión por kg EQ, en litros de leche', fmtNum(I.invKgEqL,2)+' L')}
+      ${fila('Litros por empleado'+porPeriodo(), fmtNum(c.litros_por_empleado))}
+      ${fila('kg EQ por empleado'+porPeriodo(), fmtNum(c.leche_eq_kg/appData.empleados))}
+    </div><p class="text-xs text-gray-500 mt-3">La deuda se registra en la pestaña Inversiones.</p>`)}
+  </div>
+
+  ${tarjeta('Indicadores de eficiencia económica y metas de referencia', `
+    <div class="overflow-x-auto"><table class="tabla w-full text-sm num">
+      <thead><tr><th class="text-left">Indicador</th><th class="text-left">Cálculo</th><th class="text-right">Valor</th><th class="text-right">Meta</th><th class="text-center">Estado</th></tr></thead>
+      <tbody>${metas.map(m => `<tr><td class="text-left font-medium">${m[0]}</td><td class="text-left text-xs text-gray-500">${m[1]}</td><td class="text-right">${m[2]}</td><td class="text-right text-gray-600">${m[3]}</td><td class="text-center">${m[4]}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="text-xs text-gray-500 mt-2">Metas tomadas del documento de planeación estratégica (referencias de origen brasileño; ajústelas a su contexto). La meta de inversión por kg EQ traduce «R$ 1,00 por kg EQ» con el precio de R$ 0,45/L que usa ese mismo documento. RbCt, RSCp y ROI se anualizan cuando el periodo es semestral o trimestral.</p>`)}
+
+  ${tarjeta(`Estado de resultados detallado por 100 kg EQ (${etiquetaPeriodo()})`, `
+    <div class="flex justify-end mb-2"><button onclick="exportarIndicadoresEq()" class="px-3 py-1 text-sm bg-gray-700 text-white rounded">Exportar CSV</button></div>
+    <div class="overflow-x-auto"><table class="tabla w-full text-sm num">
+      <thead><tr><th class="text-left">Concepto</th><th class="text-right">$ del periodo</th><th class="text-right">$/100 kg EQ</th><th class="text-right">% de ingresos</th><th class="text-right">Ref. % ingresos</th><th class="text-center">Estado</th></tr></thead>
+      <tbody>
+        ${encab('Ingresos brutos')}
+        ${ingresos.filter(r => r.valor!==0).map(r => filaDet(r.label, r.valor, null)).join('')}
+        ${tot('Total ingresos brutos', c.total_ingresos, 'text-green-700')}
+        ${encab('Gastos básicos')}
+        ${basicos.map(r => filaDet(r.label, r.valor, r.ref)).join('')}
+        ${tot('Total gastos básicos', c.gastos_basicos, 'text-red-700')}
+        ${encab('Gastos adicionales')}
+        ${adicionales.map(r => filaDet(r.label, r.valor, r.ref)).join('')}
+        ${tot('Total gastos adicionales', c.gastos_adicionales, 'text-red-700')}
+        ${tot('Costo total', c.total_gastos, 'text-red-800')}
+        ${tot('Lucro', c.lucro, c.lucro>=0 ? 'text-green-800' : 'text-red-800')}
+      </tbody></table></div>
+    <p class="text-xs text-gray-500 mt-2">Referencias de % de ingresos del documento de planeación estratégica. «Controles de gestión» (0,5 %) y «Mantenimiento de equipos» (2 %) no tienen rubro propio en este aplicativo.</p>`)}
+
+  ${tarjeta(periodo.tipo==='anual' ? 'Indicadores por 100 kg EQ: desagregación trimestral de referencia' : `Indicadores por 100 kg EQ por ${tipoT==='semestral' ? 'semestre' : 'trimestre'}`, `
+    <div class="overflow-x-auto"><table class="tabla w-full text-sm num">
+      <thead><tr><th class="text-left">$/100 kg EQ</th>${CORTO_SUB[tipoT].map((t,k) => `<th class="${periodo.tipo!=='anual' && k===periodo.sub ? 'bg-green-100' : ''}">${t}</th>`).join('')}</tr></thead>
+      <tbody>${filasT.map(([nm,fn]) => `<tr><td class="text-left">${nm}</td>${cols.map((m,k) => `<td class="text-right ${periodo.tipo!=='anual' && k===periodo.sub ? 'bg-green-50' : ''}">${fn(m)}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>
+    <p class="text-xs text-gray-500 mt-2">Con índices de estacionalidad (δt) el costo por 100 kg EQ cambia entre subperiodos porque los gastos fijos se reparten entre distinta producción.</p>`)}
+  </div>`;
+}
+
+function exportarIndicadoresEq(){
+  const {c, ingresos, basicos, adicionales} = desglose();
+  const I = indicadoresEq(c);
+  const dec = x => String(x).replace('.', ',');
+  const filas = [['Grupo','Concepto','$ periodo','$/100 kg EQ','% ingresos','Ref. % ingresos']];
+  const add = (g, r) => filas.push([g, r.label, Math.round(r.valor), Math.round(I.por100(r.valor)),
+    dec((c.total_ingresos>0 ? r.valor/c.total_ingresos*100 : 0).toFixed(2)), r.ref!=null ? dec(r.ref) : '']);
+  ingresos.forEach(r => add('Ingresos', r));
+  basicos.forEach(r => add('Gastos básicos', r));
+  adicionales.forEach(r => add('Gastos adicionales', r));
+  add('Total', {label:'Costo total', valor:c.total_gastos});
+  add('Total', {label:'Lucro', valor:c.lucro});
+  filas.push([]);
+  filas.push(['Periodo', etiquetaPeriodo()]);
+  filas.push(['Leche equivalente (kg)', Math.round(c.leche_eq_kg)]);
+  filas.push(['Base de conversión (kg/L)', dec(eqFactor)]);
+  const csv = filas.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(';')).join('\n');
+  descargar('\ufeff'+csv, 'indicadores_100kg_EQ.csv', 'text/csv;charset=utf-8');
+}
+
+// =====================================================================
+// 8. MÓDULO: DIAGNÓSTICO
+// =====================================================================
+function tabDiagnostico(c){
+  const factores = [['alimentacion','Eficiencia en costos de alimentación'],['calidad','Calidad de leche'],['sanidad','Sanidad del hato'],['reproductiva','Eficiencia reproductiva']];
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    ${tarjeta('Eficiencia operativa: ¿cuánto de su potencial aprovecha la finca?', `
+      <p class="text-sm text-gray-600 mb-4">E<sub>o</sub> = Producción real / Producción esperada según el potencial genético (${fmtNum(appData.potencial_genetico,1)} L/vaca/día).</p>
+      <div id="diag-eo"></div>`)}
+    ${tarjeta('Eficiencia sistémica ponderada', `
+      <p class="text-sm text-gray-600 mb-4">Puntúe cada factor de 0 a 1. La productividad se toma de E<sub>o</sub>. Pesos del contexto colombiano 2024 (cap. 3).</p>
+      ${factores.map(([k,nm]) => `<div class="mb-3">
+        <div class="flex justify-between text-sm"><span>${nm} <span class="text-gray-400">(w = ${fmtNum(PESOS[k],2)})</span></span><span class="num font-medium" id="d-${k}">${fmtNum(diag[k],2)}</span></div>
+        <input type="range" min="0" max="1" step="0.01" value="${diag[k]}" oninput="setDiag('${k}',this.value)"></div>`).join('')}
+      <div id="diag-es"></div>`)}
+  </div>
+  <div id="diag-semaforo"></div>
+  </div>`;
+}
+function setDiag(k,v){ diag[k] = +v; document.getElementById('d-'+k).textContent = fmtNum(+v,2); renderDiag(); }
+function renderDiag(){
+  const c = modelo(), a = modelo(SIM_CERO,0,'anual');
+  const el1 = document.getElementById('diag-eo'); if (!el1) return;
+  const pot = appData.potencial_genetico;
+  const litrosExtra = Math.max(pot-c.l_vaca_dia,0)*appData.vacas*c.dias;
+  const costoCerrado = c.eo>0 ? c.costo_litro*Math.min(c.eo,1) : 0;
+  const margenCerrado = c.precio>0 ? (c.precio-costoCerrado)/c.precio : 0;
+  el1.innerHTML = `
+    <div class="flex items-end gap-4 mb-3"><span class="text-5xl font-bold text-green-700 num">${fmtNum(c.eo,3)}</span><span class="text-sm text-gray-600 pb-2">${fmtNum(c.l_vaca_dia,1)} de ${fmtNum(pot,1)} L/vaca/día</span></div>
+    <div class="w-full bg-gray-200 rounded-full h-4 mb-4"><div class="bg-green-500 h-4 rounded-full" style="width:${Math.min(c.eo,1)*100}%"></div></div>
+    <div class="space-y-2 text-sm">
+      ${fila('Brecha frente al potencial', fmtPct(Math.max(c.brecha,0)))}
+      ${fila('Litros adicionales si se cierra la brecha ('+etiquetaPeriodo()+')', fmtNum(litrosExtra)+' L')}
+      ${fila('Ingreso adicional a precio actual', fmtCOP(litrosExtra*c.precio))}
+      ${fila('Margen con la brecha cerrada (costo total constante)', fmtPct(margenCerrado))}
+    </div>`;
+  const F = {productividad:Math.min(c.eo,1), ...diag};
+  const nombres = {productividad:'Productividad por vaca', alimentacion:'Costos de alimentación', calidad:'Calidad de leche', sanidad:'Sanidad', reproductiva:'Reproducción'};
+  const es = Object.keys(PESOS).reduce((s,k) => s+PESOS[k]*F[k], 0);
+  document.getElementById('diag-es').innerHTML = `
+    <div class="border-t pt-3 mt-2"><div class="flex justify-between items-end mb-2"><span class="font-semibold">Índice E<sub>s</sub> = Σ w<sub>j</sub>·F<sub>j</sub></span><span class="text-3xl font-bold text-green-700 num">${fmtNum(es,3)}</span></div>
+    ${Object.keys(PESOS).map(k => `<div class="flex items-center gap-2 text-xs mb-1"><span class="w-40">${nombres[k]}</span>
+      <div class="flex-1 bg-gray-200 rounded h-2"><div class="bg-green-500 h-2 rounded" style="width:${F[k]*100}%"></div></div>
+      <span class="w-24 text-right num">aporta ${fmtNum(PESOS[k]*F[k],3)}</span></div>`).join('')}
+    <p class="text-xs text-gray-500 mt-2">Pérdida ponderada más grande: <b>${nombres[Object.keys(PESOS).sort((x,y) => PESOS[y]*(1-F[y]) - PESOS[x]*(1-F[x]))[0]]}</b>.</p></div>`;
+  const ind = [
+    ['Margen operativo', a.margen_op, v => fmtPct(v), v => v>=0.15?'v':v>=0.08?'a':'r'],
+    ['Eficiencia operativa', a.eo, v => fmtPct(v), v => v>=0.95?'v':v>=0.85?'a':'r'],
+    ['Participación de la alimentación', a.part_alim, v => fmtPct(v), v => v<=0.35?'v':v<=0.45?'a':'r'],
+    ['Litros por empleado al año', a.litros_por_empleado, v => fmtNum(v), v => v>=120000?'v':v>=80000?'a':'r'],
+    ['ROI de la leche', a.roi_leche, v => fmtPct(v), v => v>=0.10?'v':v>=0.05?'a':'r'],
+    ['Relación beneficio/costo', a.bc, v => fmtNum(v,2), v => v>=1.2?'v':v>=1?'a':'r']
+  ];
+  const col = {v:['bg-green-100 text-green-800','Fortaleza'], a:['bg-yellow-100 text-yellow-800','Vigilar'], r:['bg-red-100 text-red-800','Debilidad']};
+  document.getElementById('diag-semaforo').innerHTML = tarjeta('Semáforo de indicadores y FODA cuantificado (base anual)', `
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      ${ind.map(([nm,v,fmt,cl]) => { const e = cl(v); return `<div class="rounded-lg p-3 ${col[e][0]}"><p class="text-xs">${col[e][1]}</p><p class="font-semibold">${nm}</p><p class="text-xl font-bold num">${fmt(v)}</p></div>`; }).join('')}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm">
+      <div><p class="font-semibold text-green-800 mb-1">Fortalezas</p><ul class="list-disc list-inside">${ind.filter(i => i[3](i[1])==='v').map(i => `<li>${i[0]}</li>`).join('') || '<li>Ninguna en rango de referencia</li>'}</ul></div>
+      <div><p class="font-semibold text-red-800 mb-1">Oportunidades de mejora</p><ul class="list-disc list-inside">${ind.filter(i => i[3](i[1])!=='v').map(i => `<li>${i[0]}</li>`).join('') || '<li>Sin alertas</li>'}</ul></div>
+    </div>
+    <p class="text-xs text-gray-500 mt-3">Umbrales orientativos; ajústelos a la región y al sistema de producción. Amenazas externas (precio, insumos importados, clima) se evalúan en el Simulador.</p>`);
+}
+
+// =====================================================================
+// 9. MÓDULO: SIMULADOR DE ESCENARIOS
+// =====================================================================
+const SLIDERS = [
+  {key:'precio', label:'Precio de la leche', min:-30, max:30, step:1, ctrl:'No controlable'},
+  {key:'alim', label:'Costo de alimentación', min:-30, max:30, step:1, ctrl:'Parcialmente controlable'},
+  {key:'prod', label:'Productividad por vaca', min:-20, max:20, step:1, ctrl:'Controlable'},
+  {key:'mo', label:'Costo de mano de obra', min:-20, max:30, step:1, ctrl:'Parcialmente controlable'},
+  {key:'otros', label:'Otros costos (insumos, energía, administración)', min:-20, max:30, step:1, ctrl:'Parcialmente controlable'},
+  {key:'animales', label:'Venta de animales', min:-50, max:50, step:5, ctrl:'Parcialmente controlable'}
+];
+const PRESETS = {
+  'Choque de precio (−15 %)': {precio:-0.15},
+  'Alza de insumos (+20 % alimentación)': {alim:0.20},
+  'Meta del plan (+3,5 % productividad)': {prod:0.035},
+  'Escenario adverso combinado': {precio:-0.10, alim:0.15, prod:-0.05}
+};
+function tabSimulador(){
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+      <h3 class="text-xl font-bold text-gray-800 mb-1">Palancas del escenario</h3>
+      <p class="text-xs text-gray-500 mb-4">Cambios respecto al caso base del periodo seleccionado (${etiquetaPeriodo()}). Si cambia la productividad, el costo total se mantiene.</p>
+      ${SLIDERS.map(s => `<div class="mb-4">
+        <div class="flex justify-between text-sm"><span>${s.label} <span class="text-xs text-gray-400">· ${s.ctrl}</span></span><span class="font-semibold num" id="o-${s.key}">${fmtSigned(sim[s.key]*100,0)}</span></div>
+        <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${Math.round(sim[s.key]*1000)/10}" oninput="setSim('${s.key}',this.value)"></div>`).join('')}
+      <div class="flex flex-wrap gap-2 mt-2">
+        ${Object.keys(PRESETS).map(p => `<button onclick="aplicarPreset('${p}')" class="px-2 py-1 text-xs bg-green-50 text-green-800 border border-green-200 rounded hover:bg-green-100">${p}</button>`).join('')}
+        <button onclick="aplicarPreset(null)" class="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200">Volver al caso base</button>
+      </div>
+      <div class="border-t mt-4 pt-4">
+        <label class="text-sm font-medium">Guardar escenario</label>
+        <div class="flex gap-2 mt-1"><input id="esc-nombre" type="text" placeholder="Nombre del escenario" class="flex-1 px-3 py-2 border rounded-md text-sm">
+          <button onclick="guardarEscenario()" class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm">Guardar</button></div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-md"><div id="sim-results"></div></div>
+  </div>
+  <div class="bg-white p-6 rounded-lg shadow-md"><div id="esc-results"></div></div>
+
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-xl font-bold text-gray-800 mb-1">Análisis de sensibilidad: ¿qué palanca mueve más el margen?</h3>
+    <p class="text-sm text-gray-600 mb-4">Una variable a la vez, siempre desde el caso base (taller «El Plan»). Ajuste la magnitud de cada cambio:</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${[['precio','Precio ± %'],['alim','Alimentación ± %'],['prod','Productividad ± %'],['mo','Mano de obra ± %']].map(([k,nm]) => `
+        <label class="text-sm">${nm}<input type="number" min="1" max="50" value="${sens[k]}" onchange="sens['${k}']=Math.max(1,+this.value||1);renderSensibilidad()" class="w-full mt-1 px-2 py-1 border rounded"></label>`).join('')}
+    </div>
+    <div id="sens-results"></div>
+  </div>
+
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-xl font-bold text-gray-800 mb-1">Simulación estocástica (Monte Carlo)</h3>
+    <p class="text-sm text-gray-600 mb-4">Genera miles de escenarios alrededor del escenario actual, con variación aleatoria normal en precio, alimentación y productividad, y estima el riesgo sobre el margen.</p>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 items-end">
+      ${[['sdPrecio','Volatilidad precio (σ %)'],['sdAlim','Volatilidad alimentación (σ %)'],['sdProd','Volatilidad productividad (σ %)'],['n','Iteraciones']].map(([k,nm]) => `
+        <label class="text-sm">${nm}<input type="number" min="0" value="${mc[k]}" onchange="mc['${k}']=Math.max(0,+this.value||0)" class="w-full mt-1 px-2 py-1 border rounded"></label>`).join('')}
+      <button onclick="correrMonteCarlo()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Simular</button>
+    </div>
+    <div id="mc-results"></div>
+  </div>
+  </div>`;
+}
+function setSim(k,v){ sim[k] = +v/100; document.getElementById('o-'+k).textContent = fmtSigned(+v,0); renderSimResults(); }
+function aplicarPreset(p){ sim = {...SIM_CERO, ...(p ? PRESETS[p] : {})}; renderTabContent(); }
+
+function renderSimResults(){
+  const el = document.getElementById('sim-results'); if (!el) return;
+  const b = modelo(SIM_CERO), s = modelo(sim);
+  const filas = [
+    ['Precio de la leche', fmtCOP(b.precio)+'/L', fmtCOP(s.precio)+'/L'],
+    ['Costo por litro', fmtCOP(b.costo_litro)+'/L', fmtCOP(s.costo_litro)+'/L'],
+    ['Producción del periodo', fmtNum(b.volumen)+' L', fmtNum(s.volumen)+' L'],
+    ['Litros/vaca/día', fmtNum(b.l_vaca_dia,1), fmtNum(s.l_vaca_dia,1)+(s.l_vaca_dia>appData.potencial_genetico ? ' ⚠' : '')],
+    ['Ingresos totales', fmtMill(b.total_ingresos), fmtMill(s.total_ingresos)],
+    ['Gastos totales', fmtMill(b.total_gastos), fmtMill(s.total_gastos)],
+    ['Resultado', fmtMill(b.lucro), fmtMill(s.lucro)],
+    ['Costo por 100 kg EQ', fmtCOP(b.costo_100kg_leq), fmtCOP(s.costo_100kg_leq)],
+    ['ROI de la leche (anualizado)', fmtPct(b.roi_leche_anual), fmtPct(s.roi_leche_anual)],
+    ['Precio mínimo viable', fmtCOP(b.precio_min)+'/L', fmtCOP(s.precio_min)+'/L']
+  ];
+  const costoPct = Math.min(Math.max(s.costo_litro/s.precio,0),1)*100;
+  const dPts = (s.margen_op-b.margen_op)*100;
+  el.innerHTML = `
+    <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+      <div><p class="text-sm text-gray-600">Margen operativo del escenario</p>
+        <p class="text-5xl font-bold text-${colorMargen(s.margen_op)}-600 num">${fmtPct(s.margen_op)}</p>
+        <p class="text-sm text-gray-600">${estadoMargen(s.margen_op)}</p></div>
+      <div class="text-right"><p class="text-sm text-gray-600">Cambio frente al caso base</p>
+        <p class="text-3xl font-bold num ${dPts>=0?'text-green-600':'text-red-600'}">${fmtSigned(dPts,1,' pts')}</p>
+        <p class="text-xs text-gray-500">Base: ${fmtPct(b.margen_op)}</p></div>
+    </div>
+    <div class="w-full h-8 flex rounded overflow-hidden text-xs text-white mb-4">
+      <div class="bg-gray-500 flex items-center justify-center" style="width:${costoPct}%">Costo ${fmtNum(costoPct,0)} %</div>
+      <div class="${s.margen_op<0?'bg-red-500':'bg-green-600'} flex items-center justify-center" style="width:${100-costoPct}%">${s.margen_op>0.04 ? 'Margen' : ''}</div>
+    </div>
+    <table class="tabla w-full text-sm num"><thead><tr><th class="text-left">Indicador</th><th class="text-right">Caso base</th><th class="text-right">Escenario</th></tr></thead>
+      <tbody>${filas.map(f => `<tr><td>${f[0]}</td><td class="text-right">${f[1]}</td><td class="text-right font-semibold">${f[2]}</td></tr>`).join('')}</tbody></table>
+    ${s.l_vaca_dia>appData.potencial_genetico ? `<p class="text-xs text-orange-600 mt-2">⚠ El escenario supera el potencial genético actual (${fmtNum(appData.potencial_genetico,1)} L/vaca/día).</p>` : ''}`;
+}
+
+function guardarEscenario(){
+  const inp = document.getElementById('esc-nombre');
+  const nombre = (inp.value || '').trim() || `Escenario ${escenarios.length+1}`;
+  const s = modelo(sim);
+  escenarios.push({nombre, periodo:etiquetaPeriodo(), sim:{...sim},
+    res:{margen:s.margen_op, costo:s.costo_litro, precio:s.precio, lucro:s.lucro, roi:s.roi_leche_anual, costo100:s.costo_100kg_leq}});
+  inp.value = '';
+  renderEscenarios();
+}
+function borrarEscenario(i){ escenarios.splice(i,1); renderEscenarios(); }
+function renderEscenarios(){
+  const el = document.getElementById('esc-results'); if (!el) return;
+  if (!escenarios.length){ el.innerHTML = `<h3 class="text-xl font-bold text-gray-800 mb-1">Comparación de escenarios</h3><p class="text-sm text-gray-500">Guarde escenarios para compararlos lado a lado.</p>`; return; }
+  el.innerHTML = `<div class="flex justify-between items-center mb-3"><h3 class="text-xl font-bold text-gray-800">Comparación de escenarios</h3>
+    <button onclick="exportarCSV()" class="px-3 py-1 text-sm bg-gray-700 text-white rounded">Exportar CSV</button></div>
+    <div class="overflow-x-auto"><table class="tabla w-full text-sm num"><thead><tr>
+      <th class="text-left">Escenario</th><th>Periodo</th><th>Precio</th><th>Alim.</th><th>Prod.</th><th>M. obra</th><th>Otros</th>
+      <th>Margen</th><th>Costo/L</th><th>Costo/100 kg EQ</th><th>Resultado</th><th>ROI</th><th></th></tr></thead><tbody>
+      ${escenarios.map((e,i) => `<tr><td class="text-left">${esc(e.nombre)}</td><td class="text-xs">${e.periodo}</td>
+        ${['precio','alim','prod','mo','otros'].map(k => `<td class="text-right">${fmtSigned(e.sim[k]*100,0)}</td>`).join('')}
+        <td class="text-right font-semibold text-${colorMargen(e.res.margen)}-600">${fmtPct(e.res.margen)}</td>
+        <td class="text-right">${fmtCOP(e.res.costo)}</td><td class="text-right">${fmtCOP(e.res.costo100||0)}</td>
+        <td class="text-right">${fmtMill(e.res.lucro)}</td><td class="text-right">${fmtPct(e.res.roi)}</td>
+        <td><button onclick="borrarEscenario(${i})" class="text-red-500 text-xs">Quitar</button></td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function exportarCSV(){
+  const dec = x => String(x).replace('.', ',');
+  const enc = ['Escenario','Periodo','Precio %','Alimentacion %','Productividad %','Mano de obra %','Otros %','Venta animales %','Margen %','Costo $/L','Costo $/100 kg EQ','Precio $/L','Resultado $','ROI anualizado %'];
+  const filas = escenarios.map(e => [e.nombre, e.periodo, ...['precio','alim','prod','mo','otros','animales'].map(k => dec((e.sim[k]*100).toFixed(1))),
+    dec((e.res.margen*100).toFixed(2)), dec(e.res.costo.toFixed(1)), Math.round(e.res.costo100||0), dec(e.res.precio.toFixed(1)), Math.round(e.res.lucro), dec((e.res.roi*100).toFixed(2))]);
+  const csv = [enc, ...filas].map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(';')).join('\n');
+  descargar('\ufeff'+csv, 'escenarios_gestion_lechera.csv', 'text/csv;charset=utf-8');
+}
+
+function renderSensibilidad(){
+  const el = document.getElementById('sens-results'); if (!el) return;
+  const b = modelo(SIM_CERO);
+  const defs = [
+    {nm:'Precio de la leche', key:'precio', ctrl:'No controlable', res:'precio'},
+    {nm:'Costo de alimentación', key:'alim', ctrl:'Parcialmente', res:'costo'},
+    {nm:'Productividad por vaca', key:'prod', ctrl:'Controlable', res:'costo'},
+    {nm:'Costo de mano de obra', key:'mo', ctrl:'Parcialmente', res:'costo'}
+  ];
+  const filas = defs.map(d => {
+    const mag = sens[d.key];
+    const sube = modelo({...SIM_CERO, [d.key]:mag/100}), baja = modelo({...SIM_CERO, [d.key]:-mag/100});
+    const dSube = (sube.margen_op-b.margen_op)*100, dBaja = (baja.margen_op-b.margen_op)*100;
+    return {...d, mag, sube, baja, dSube, dBaja, elast:Math.abs(dSube-dBaja)/(2*mag), rango:Math.abs(dSube-dBaja)};
+  });
+  const val = (r,m) => r.res==='precio' ? 'Precio '+fmtCOP(m.precio) : 'Costo '+fmtCOP(m.costo_litro);
+  const tabla = `<table class="tabla w-full text-sm num"><thead><tr><th class="text-left">Escenario</th><th class="text-right">Precio o costo resultante ($/L)</th><th class="text-right">Margen</th><th class="text-right">Cambio (pts)</th></tr></thead><tbody>
+    <tr><td>Caso base</td><td class="text-right">—</td><td class="text-right font-bold">${fmtPct(b.margen_op)}</td><td class="text-right">—</td></tr>
+    ${filas.map(r => `
+      <tr><td>${r.nm} +${r.mag} %</td><td class="text-right">${val(r,r.sube)}</td><td class="text-right font-semibold text-${colorMargen(r.sube.margen_op)}-600">${fmtPct(r.sube.margen_op)}</td><td class="text-right">${fmtSigned(r.dSube,1,'')}</td></tr>
+      <tr><td>${r.nm} −${r.mag} %</td><td class="text-right">${val(r,r.baja)}</td><td class="text-right font-semibold text-${colorMargen(r.baja.margen_op)}-600">${fmtPct(r.baja.margen_op)}</td><td class="text-right">${fmtSigned(r.dBaja,1,'')}</td></tr>`).join('')}
+  </tbody></table>`;
+  const porRango = [...filas].sort((x,y) => y.rango-x.rango);
+  const porElast = [...filas].sort((x,y) => y.elast-x.elast);
+  const maxAbs = Math.max(...filas.flatMap(r => [Math.abs(r.dSube), Math.abs(r.dBaja)]), 0.001);
+  const tornado = porRango.map(r => {
+    const neg = Math.min(r.dSube, r.dBaja), pos = Math.max(r.dSube, r.dBaja);
+    return `<div class="grid grid-cols-12 items-center gap-2 text-xs mb-2">
+      <div class="col-span-3 text-right text-gray-700">${r.nm} (±${r.mag} %)</div>
+      <div class="col-span-4 flex justify-end"><div class="bg-red-400 h-6 rounded-l flex items-center justify-start pl-1 text-white num" style="width:${Math.abs(neg)/maxAbs*100}%">${fmtNum(neg,1)}</div></div>
+      <div class="col-span-4 flex border-l-2 border-gray-700"><div class="bg-green-500 h-6 rounded-r flex items-center justify-end pr-1 text-white num" style="width:${Math.abs(pos)/maxAbs*100}%">+${fmtNum(pos,1)}</div></div>
+      <div class="col-span-1 text-gray-500 num">${fmtNum(r.elast,2)}</div></div>`;
+  }).join('');
+  const controlables = porElast.filter(r => r.ctrl!=='No controlable');
+  const precio = filas.find(r => r.key==='precio');
+  const precios = [-20,-15,-10,-5,0,5,10,15,20], prods = [15,10,5,0,-5,-10,-15];
+  const bg = m => m<0?'#fecaca':m<0.05?'#fed7aa':m<0.12?'#fef08a':m<0.2?'#bbf7d0':'#86efac';
+  const heat = `<table class="heat w-full num"><thead><tr><th class="text-gray-600">Prod. \\ Precio</th>${precios.map(p => `<th>${fmtSigned(p,0)}</th>`).join('')}</tr></thead><tbody>
+    ${prods.map(pr => `<tr><th>${fmtSigned(pr,0)}</th>${precios.map(p => { const m = modelo({...SIM_CERO, precio:p/100, prod:pr/100}).margen_op; return `<td style="background:${bg(m)};${p===0&&pr===0?'outline:2px solid #111;':''}">${fmtNum(m*100,1)}</td>`; }).join('')}</tr>`).join('')}
+  </tbody></table>`;
+  el.innerHTML = `
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div>${tabla}</div>
+      <div><h4 class="font-semibold mb-2">Diagrama de tornado (cambio en puntos de margen)</h4>
+        <div class="grid grid-cols-12 text-xs text-gray-500 mb-1"><div class="col-span-3"></div><div class="col-span-4 text-right pr-1">empeora</div><div class="col-span-4 pl-1">mejora</div><div class="col-span-1">pts/1 %</div></div>
+        ${tornado}
+        <div class="bg-blue-50 text-blue-900 text-sm rounded p-3 mt-3 space-y-1">
+          <p><b>Más sensible:</b> ${porElast[0].nm} (${fmtNum(porElast[0].elast,2)} pts por cada 1 %).</p>
+          <p><b>Palanca controlable más fuerte:</b> ${controlables[0].nm} (${fmtNum(controlables[0].elast,2)} pts por cada 1 %).</p>
+          <p><b>Asimetría del precio:</b> bajar ${precio.mag} % resta ${fmtNum(Math.abs(precio.dBaja),1)} pts; subir ${precio.mag} % suma ${fmtNum(precio.dSube,1)} pts.</p>
+        </div></div>
+    </div>
+    <h4 class="font-semibold mt-6 mb-2">Mapa de margen operativo (%): precio × productividad</h4>
+    ${heat}
+    <p class="text-xs text-gray-500 mt-2">El recuadro negro es el caso base. Rojo: pérdida · naranja: &lt; 5 % · amarillo: &lt; 12 % · verde: ≥ 12 %.</p>`;
+}
+
+function randn(){ let u=0, v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function correrMonteCarlo(){
+  const n = Math.min(Math.max(Math.round(mc.n),100),20000);
+  const margenes = [], lucros = [];
+  for (let i=0; i<n; i++){
+    const s = {...sim,
+      precio: Math.max(-0.9, sim.precio + randn()*mc.sdPrecio/100),
+      alim: Math.max(-0.9, sim.alim + randn()*mc.sdAlim/100),
+      prod: Math.max(-0.9, sim.prod + randn()*mc.sdProd/100)};
+    const m = modelo(s);
+    margenes.push(m.margen_op); lucros.push(m.lucro);
+  }
+  margenes.sort((a,b) => a-b); lucros.sort((a,b) => a-b);
+  mc.resultado = {margenes, lucros, n, periodo:etiquetaPeriodo()};
+  renderMC();
+}
+function renderMC(){
+  const el = document.getElementById('mc-results'); if (!el) return;
+  const r = mc.resultado;
+  if (!r){ el.innerHTML = '<p class="text-sm text-gray-500">Presione «Simular» para generar la distribución.</p>'; return; }
+  const arr = r.margenes, N = arr.length;
+  const q = (a,p) => a[Math.min(N-1, Math.floor(p*N))];
+  const media = arr.reduce((a,b) => a+b,0)/N;
+  const sd = Math.sqrt(arr.reduce((a,b) => a+(b-media)**2,0)/N);
+  const pPerd = arr.filter(m => m<0).length/N, pCrit = arr.filter(m => m<0.05).length/N;
+  const nb = 24, min = arr[0], max = arr[N-1], w = (max-min)/nb || 0.001;
+  const cuentas = Array(nb).fill(0); arr.forEach(m => cuentas[Math.min(nb-1, Math.floor((m-min)/w))]++);
+  const cmax = Math.max(...cuentas);
+  el.innerHTML = `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
+      ${[['Margen medio', fmtPct(media)], ['Desviación estándar', fmtNum(sd*100,1)+' pts'], ['Probabilidad de pérdida', fmtPct(pPerd)], ['Prob. margen < 5 %', fmtPct(pCrit)],
+         ['Percentil 5', fmtPct(q(arr,0.05))], ['Mediana', fmtPct(q(arr,0.5))], ['Percentil 95', fmtPct(q(arr,0.95))], ['Resultado P5 – P95', fmtMill(q(r.lucros,0.05))+' a '+fmtMill(q(r.lucros,0.95))]]
+        .map(([t,v]) => `<div class="border rounded p-2"><p class="text-xs text-gray-500">${t}</p><p class="font-bold num">${v}</p></div>`).join('')}
+    </div>
+    <div class="flex items-end gap-px h-40 border-b border-l border-gray-300">
+      ${cuentas.map((c,i) => { const centro = min+(i+0.5)*w; return `<div title="${fmtPct(centro)}: ${c}" class="flex-1 ${centro<0?'bg-red-400':centro<0.05?'bg-orange-300':'bg-green-500'}" style="height:${c/cmax*100}%"></div>`; }).join('')}
+    </div>
+    <div class="flex justify-between text-xs text-gray-500 num mt-1"><span>${fmtPct(min)}</span><span>Distribución del margen operativo (${r.n} iteraciones, ${r.periodo})</span><span>${fmtPct(max)}</span></div>`;
+}
+
+// =====================================================================
+// 10. MÓDULO: PLANIFICACIÓN
+// =====================================================================
+function tabPlanificacion(){
+  const campos = [
+    ['metaMargen','Meta de margen operativo (%)'],['caidaPrecio','Choque de precio a resistir (%)'],
+    ['horizonte','Horizonte de proyección (años)'],['crecPrecio','Crecimiento anual del precio (%)'],
+    ['inflCostos','Inflación anual de costos (%)'],['mejoraProd','Mejora anual de productividad (%)'],
+    ['tasaDesc','Tasa de descuento ajustada por riesgo (%)']];
+  return `<div class="space-y-6">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    ${tarjeta('Parámetros del plan', `
+      ${campos.map(([k,nm]) => `<label class="block text-sm mb-3">${nm}<input type="number" step="any" value="${plan[k]}" onchange="setPlan('${k}',this.value)" class="w-full mt-1 px-3 py-2 border rounded-md"></label>`).join('')}
+      <p class="text-xs text-gray-500">La planificación trabaja sobre la base anual. Horizontes: corto plazo 0–12 meses; mediano 12–36 meses; largo más de 5 años.</p>`)}
+    <div class="lg:col-span-2 space-y-6"><div id="plan-results"></div></div>
+  </div>
+  ${tarjeta('Medidas de innovación del plan para «El Plan»', `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+    <div class="border rounded p-3"><p class="font-semibold text-green-800">Corto plazo (0–12 meses) · operacionales</p>
+      <ul class="list-disc list-inside mt-1 text-gray-700"><li>Nutrición de precisión</li><li>Optimización de protocolos reproductivos</li><li>Mejor manejo de praderas y forrajes</li></ul></div>
+    <div class="border rounded p-3"><p class="font-semibold text-blue-800">Mediano plazo (12–36 meses) · estructurales</p>
+      <ul class="list-disc list-inside mt-1 text-gray-700"><li>Mejoramiento genético</li><li>Infraestructura productiva</li><li>Tecnologías de precisión</li></ul></div>
+  </div>`)}
+  </div>`;
+}
+function setPlan(k,v){ plan[k] = +v || 0; if (k==='horizonte') plan.horizonte = Math.min(Math.max(Math.round(plan.horizonte),1),20); renderPlan(); }
+function renderPlan(){
+  const el = document.getElementById('plan-results'); if (!el) return;
+  const a = modelo(SIM_CERO, 0, 'anual');
+  const P = a.precio, C = a.costo_litro, m0 = a.margen_op, L = a.l_vaca_dia, pot = appData.potencial_genetico;
+  const mMeta = plan.metaMargen/100;
+  const cReq = P*(1-mMeta), redC = C-cReq, prodReq = C/cReq-1, Lreq = L*(1+prodReq);
+  const P2 = P*(1-plan.caidaPrecio/100), cReq2 = P2*(1-m0), prodReq2 = C/cReq2-1, Lreq2 = L*(1+prodReq2);
+  const smart = `Aumentar la producción promedio de ${fmtNum(L,1)} a ${fmtNum(Lreq,1)} L/vaca/día en los próximos 12 meses, mediante ajuste de la dieta y del programa reproductivo, sin aumentar el costo total anual, para llevar el margen operativo de ${fmtPct(m0)} a ${fmtPct(mMeta)}.`;
+  const r = plan.tasaDesc/100, otrosIng = a.total_ingresos-a.venta_leche;
+  let vpn = 0, vpnSin = 0, topado = false;
+  const filas = [];
+  for (let t=1; t<=plan.horizonte; t++){
+    const gP = (1+plan.crecPrecio/100)**t, gC = (1+plan.inflCostos/100)**t;
+    let Lt = L*(1+plan.mejoraProd/100)**t;
+    if (Lt>pot){ Lt = Math.max(pot, L); topado = true; }
+    const vol = appData.vacas*365*Lt;
+    const ing = vol*P*gP + otrosIng*gP, cos = a.total_gastos*gC, ben = ing-cos, vp = ben/(1+r)**t;
+    const benSin = appData.volumen*P*gP + otrosIng*gP - cos;
+    vpn += vp; vpnSin += benSin/(1+r)**t;
+    filas.push({t, Lt, vol, ing, cos, ben, vp, margen:(P*gP - cos/vol)/(P*gP), hz: t<=1?'Corto':t<=3?'Mediano':'Largo'});
+  }
+  el.innerHTML = `
+    ${tarjeta('Meta de margen: ¿qué se necesita para alcanzarla?', `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
+        <div class="border rounded p-3"><p class="text-xs text-gray-500">Costo requerido</p><p class="text-xl font-bold num">${fmtCOP(cReq)}/L</p><p class="text-xs">Reducción de ${fmtCOP(redC)}/L frente a ${fmtCOP(C)}/L</p></div>
+        <div class="border rounded p-3"><p class="text-xs text-gray-500">O bien, productividad requerida</p><p class="text-xl font-bold num">${fmtSigned(prodReq*100,1)}</p><p class="text-xs">${fmtNum(L,1)} → ${fmtNum(Lreq,1)} L/vaca/día, costo total constante</p></div>
+        <div class="border rounded p-3 ${Lreq>pot?'bg-orange-50':'bg-green-50'}"><p class="text-xs text-gray-500">Frente al potencial genético</p><p class="text-xl font-bold num">${fmtNum(pot,1)} L/día</p><p class="text-xs">${Lreq>pot ? 'La meta supera el potencial: combine productividad con reducción de costos.' : 'La meta cabe dentro del potencial del hato.'}</p></div>
+      </div>
+      <div class="bg-green-50 border-l-4 border-green-600 p-3 text-sm"><p class="font-semibold text-green-800 mb-1">Meta SMART sugerida</p><p>${smart}</p></div>
+      <div class="bg-orange-50 border-l-4 border-orange-500 p-3 text-sm mt-3"><p class="font-semibold text-orange-800 mb-1">Resistencia a un choque de precio del −${fmtNum(plan.caidaPrecio,0)} %</p>
+        <p>Con el precio en ${fmtCOP(P2)}/L, mantener el margen actual (${fmtPct(m0)}) exige un costo de ${fmtCOP(cReq2)}/L, es decir, subir la productividad ${fmtSigned(prodReq2*100,1)} hasta ${fmtNum(Lreq2,1)} L/vaca/día${Lreq2>pot ? ', por encima del potencial genético: la productividad amortigua la volatilidad, pero no la compensa sola' : ''}.</p></div>`)}
+    ${tarjeta(`Proyección a ${plan.horizonte} años y valor presente`, `
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 text-sm">
+        <div class="border rounded p-3"><p class="text-xs text-gray-500">VPN con el plan de productividad</p><p class="text-xl font-bold num">${fmtMill(vpn)}</p></div>
+        <div class="border rounded p-3"><p class="text-xs text-gray-500">VPN sin mejora de productividad</p><p class="text-xl font-bold num">${fmtMill(vpnSin)}</p></div>
+        <div class="border rounded p-3 bg-green-50"><p class="text-xs text-gray-500">Valor del programa</p><p class="text-xl font-bold num text-green-700">${fmtMill(vpn-vpnSin)}</p></div>
+      </div>
+      <div class="overflow-x-auto"><table class="tabla w-full text-sm num"><thead><tr><th>Año</th><th>Horizonte</th><th>L/vaca/día</th><th>Ingresos</th><th>Costos</th><th>Beneficio</th><th>Margen</th><th>Valor presente</th></tr></thead><tbody>
+        ${filas.map(f => `<tr><td class="text-center">${f.t}</td><td class="text-center text-xs">${f.hz}</td><td class="text-right">${fmtNum(f.Lt,1)}</td><td class="text-right">${fmtMill(f.ing)}</td><td class="text-right">${fmtMill(f.cos)}</td><td class="text-right ${f.ben<0?'text-red-600':''}">${fmtMill(f.ben)}</td><td class="text-right">${fmtPct(f.margen)}</td><td class="text-right">${fmtMill(f.vp)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="text-xs text-gray-500 mt-2">R<sub>lt</sub> = Σ (I<sub>t</sub> − C<sub>t</sub>) / (1 + r)<sup>t</sup>. Supuestos: el costo total crece solo con la inflación; la productividad adicional no aumenta el costo total${topado ? '; la producción se limita al potencial genético' : ''}.</p>`)}`;
+}
+
+// =====================================================================
+// 11. ANÁLISIS IA (conservado y ampliado con escenario y periodo)
+// =====================================================================
+function tabAnalisis(c){
+  let cuerpo = '<p class="text-gray-600">Presione «Analizar con IA» para obtener un diagnóstico con base en los datos, el periodo y el escenario actual del simulador.</p>';
+  if (isAnalyzing) cuerpo = '<p class="text-indigo-700">Analizando…</p>';
+  else if (aiAnalysis && aiAnalysis.error) cuerpo = `<p class="text-red-600">${esc(aiAnalysis.error)}</p>`;
+  else if (aiAnalysis){
+    const lista = (t,arr,cl) => arr && arr.length ? `<div class="${cl} p-4 rounded-lg"><h4 class="font-semibold mb-2">${t}</h4><ul class="list-disc list-inside space-y-1">${arr.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : '';
+    cuerpo = `<div class="space-y-4">
+      ${aiAnalysis.resumen ? `<div class="bg-white p-4 rounded-lg"><p>${esc(aiAnalysis.resumen)}</p></div>` : ''}
+      ${lista('Fortalezas', aiAnalysis.fortalezas, 'bg-green-50 text-green-800')}
+      ${lista('Debilidades', aiAnalysis.debilidades, 'bg-red-50 text-red-800')}
+      ${lista('Recomendaciones', aiAnalysis.recomendaciones, 'bg-blue-50 text-blue-800')}</div>`;
+  }
+  return `<div class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      ${createKPICard('Margen operativo', fmtPct(c.margen_op), 'pie-chart', colorMargen(c.margen_op), etiquetaPeriodo())}
+      ${createKPICard('Eficiencia operativa', fmtPct(c.eo), 'activity', 'blue')}
+      ${createKPICard('Costo por 100 kg EQ', fmtCOP(c.costo_100kg_leq), 'calculator', 'purple')}
+      ${createKPICard('Escenarios guardados', fmtNum(escenarios.length), 'sliders', 'orange')}
+    </div>
+    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center">${createIcon('brain',24,'mr-2 text-indigo-600')}Análisis inteligente</h3>
+        <button onclick="analyzeWithAI()" ${isAnalyzing?'disabled':''} class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50">Analizar con IA</button>
+      </div>${cuerpo}</div></div>`;
+}
+async function analyzeWithAI(){
+  if (!window.claude || !window.claude.complete){ alert('La función de análisis IA solo está disponible cuando el aplicativo se ejecuta dentro de Claude.'); return; }
+  isAnalyzing = true; renderTabContent();
+  const c = modelo(), s = modelo(sim), I = indicadoresEq(c);
+  const prompt = `Analiza esta finca lechera de ${appData.region}, Colombia (sistema: ${appData.sistema_produccion}). Periodo: ${etiquetaPeriodo()}.
+DATOS: ${appData.vacas} vacas, ${appData.area} ha, ${appData.empleados} empleados, ${fmtNum(c.l_vaca_dia,1)} L/vaca/día frente a potencial de ${appData.potencial_genetico} L.
+RESULTADOS DEL PERIODO: ingresos ${fmtCOP(c.total_ingresos)}, gastos ${fmtCOP(c.total_gastos)}, resultado ${fmtCOP(c.lucro)}.
+INDICADORES: precio ${fmtCOP(c.precio)}/L, costo ${fmtCOP(c.costo_litro)}/L, margen operativo ${fmtPct(c.margen_op)}, eficiencia operativa ${fmtPct(c.eo)}, leche equivalente ${fmtNum(c.leche_eq_kg)} kg, ROI de la leche anualizado ${fmtPct(c.roi_leche_anual)}, alimentación ${fmtPct(c.part_alim)} del costo, mano de obra ${fmtPct(c.part_mo)}.
+POR 100 kg EQ: costo total ${fmtCOP(I.por100(c.total_gastos))}, lucro ${fmtCOP(I.por100(c.lucro))}. CA%Rec ${fmtPct(I.ca)}, MO%Rec ${fmtPct(I.mo)}, MLRb ${fmtPct(I.mlrb)}, RbCt ${fmtNum(I.rbct,2)}, CtCp ${isFinite(I.ctcp)?fmtNum(I.ctcp,2):'—'}, RSCp ${isFinite(I.rscp)?fmtPct(I.rscp):'—'}.
+ESCENARIO SIMULADO: precio ${fmtSigned(sim.precio*100,0)}, alimentación ${fmtSigned(sim.alim*100,0)}, productividad ${fmtSigned(sim.prod*100,0)}, mano de obra ${fmtSigned(sim.mo*100,0)} → margen ${fmtPct(s.margen_op)}.
+Responde SOLO con un JSON válido, sin texto adicional: {"resumen":"...","fortalezas":["..."],"debilidades":["..."],"recomendaciones":["..."]}`;
+  try {
+    const resp = await window.claude.complete(prompt);
+    const txt = String(resp).replace(/```json|```/g,'').trim();
+    aiAnalysis = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}')+1));
+  } catch(e){ aiAnalysis = {error:'No fue posible interpretar la respuesta: '+e.message}; }
+  isAnalyzing = false; renderTabContent();
+}
+
+// =====================================================================
+// 12. RESPALDO DE DATOS
+// =====================================================================
+function restaurarElPlan(){
+  if (!confirm('¿Reemplazar los datos actuales por el caso «El Plan»?')) return;
+  appData = JSON.parse(JSON.stringify(CASO_EL_PLAN)); renderTabContent();
+}
+function exportarJSON(){
+  calculateAutomaticValues();
+  descargar(JSON.stringify({appData, estac, plan, diag, escenarios, eqFactor}, null, 2), 'finca_gestion_lechera.json', 'application/json');
+}
+function importarJSON(ev){
+  const file = ev.target.files[0]; if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const o = JSON.parse(rd.result);
+      if (o.appData) appData = {...CASO_EL_PLAN, ...o.appData};
+      if (o.estac) estac = o.estac;
+      if (o.plan) plan = {...plan, ...o.plan};
+      if (o.diag) diag = {...diag, ...o.diag};
+      if (Array.isArray(o.escenarios)) escenarios = o.escenarios;
+      if (o.eqFactor) eqFactor = +o.eqFactor;
+      renderEstacPanel(); renderTabContent();
+    } catch(e){ alert('Archivo no válido: '+e.message); }
+  };
+  rd.readAsText(file);
+}
+
+// =====================================================================
+// 13. NAVEGACIÓN Y RENDER
+// =====================================================================
+function renderTabs(){
+  document.getElementById('tab-navigation').innerHTML = tabs.map(tab => `
+    <button onclick="setActiveTab('${tab.id}')" class="flex items-center px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab===tab.id?'tab-active':'tab-inactive'}">
+      ${savedSections.has(tab.id) ? createIcon('check-circle',14,'mr-1 text-green-600') : ''}${createIcon(tab.icon,16,'mr-2')}${tab.label}</button>`).join('');
+}
+function renderTabContent(){
+  const c = getCalculations();
+  const map = {datos_generales:tabDatos, ingresos:tabIngresos, gastos:tabGastos, inversiones:tabInversiones,
+    resultados:tabResultados, indicadores_eq:tabIndicadoresEq, diagnostico:tabDiagnostico,
+    simulador:tabSimulador, planificacion:tabPlanificacion, analisis:tabAnalisis};
+  document.getElementById('tab-content').innerHTML = map[activeTab](c);
+  if (activeTab==='simulador'){ renderSimResults(); renderEscenarios(); renderSensibilidad(); renderMC(); }
+  if (activeTab==='diagnostico') renderDiag();
+  if (activeTab==='planificacion') renderPlan();
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+function setActiveTab(id){ activeTab = id; renderTabs(); renderTabContent(); updateNavigationButtons(); window.scrollTo({top:0, behavior:'smooth'}); }
+function updateData(field, value){ appData[field] = value; renderTabContent(); }
+function navigateTab(dir){
+  const cur = tabs.find(t => t.id===activeTab).order, nuevo = cur+dir;
+  if (nuevo>=0 && nuevo<tabs.length){ saveCurrentData(); setActiveTab(tabs.find(t => t.order===nuevo).id); }
+}
+function saveCurrentData(){
+  savedSections.add(activeTab); updateProgress(); renderTabs();
+  const b = document.getElementById('save-button'), st = document.getElementById('save-status');
+  b.classList.add('pulse-save'); st.textContent = '✅ Datos guardados'; st.style.color = '#10b981';
+  setTimeout(() => { b.classList.remove('pulse-save'); st.textContent = ''; }, 2000);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+function updateProgress(){
+  document.getElementById('progress-bar').style.width = `${savedSections.size/tabs.length*100}%`;
+  document.getElementById('progress-text').textContent = `${savedSections.size}/${tabs.length} secciones completadas`;
+}
+function updateNavigationButtons(){
+  const cur = tabs.find(t => t.id===activeTab).order;
+  const prev = document.getElementById('prev-button'), next = document.getElementById('next-button');
+  prev.disabled = cur===0;
+  if (cur===tabs.length-1){
+    next.textContent = 'Finalizar';
+    next.onclick = () => { saveCurrentData(); alert('¡Registro completado! Todos los datos han sido guardados.'); };
+  } else { next.textContent = 'Siguiente →'; next.onclick = () => navigateTab(1); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  calculateAutomaticValues();
+  updatePeriodoControls();
+  renderTabs(); renderTabContent(); updateNavigationButtons(); updateProgress();
+});
+</script>
+</body>
+</html>
