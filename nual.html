@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual · Sistema de Gestión Estratégica Lechera</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Source+Sans+3:wght@300;400;600;700&family=Source+Code+Pro:wght@400;600&display=swap">
+<style>
+/* ── TOKENS DE COLOR ───────────────────────────────────────────────────── */
+:root {
+  --verde-oscuro: #1a3a2a;
+  --verde-medio:  #2d5c40;
+  --verde-claro:  #4a8c5c;
+  --verde-menta:  #7ab893;
+  --verde-pale:   #d6eedd;
+  --ocre:         #c4933f;
+  --ocre-claro:   #e8b86d;
+  --crema:        #f7f2ea;
+  --crema-dark:   #ede5d8;
+  --texto:        #1c2b22;
+  --texto-suave:  #4a5e52;
+  --borde:        #ccdbd4;
+  --blanco:       #ffffff;
+  --rojo:         #b83232;
+  --rojo-pale:    #fdecea;
+  --azul:         #2456a4;
+  --azul-pale:    #e8f0fb;
+}
+
+/* ── RESET Y BASE ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  background: var(--crema);
+  color: var(--texto);
+  font-size: 16px;
+  line-height: 1.7;
+}
+img { max-width: 100%; }
+
+/* ── PORTADA ───────────────────────────────────────────────────────────── */
+.portada {
+  background: var(--verde-oscuro);
+  color: var(--blanco);
+  padding: 4rem 2rem 3.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.portada::before {
+  content: '';
+  position: absolute;
+  top: -40%; left: -20%;
+  width: 140%; height: 200%;
+  background: radial-gradient(ellipse at 60% 40%, rgba(74,140,92,0.35) 0%, transparent 65%);
+  pointer-events: none;
+}
+.portada-kicker {
+  font-size: 0.8rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--verde-menta);
+  margin-bottom: 1.2rem;
+  font-weight: 600;
+}
+.portada h1 {
+  font-family: 'Merriweather', serif;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 0.6rem;
+}
+.portada h1 span { color: var(--ocre-claro); }
+.portada-sub {
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.78);
+  max-width: 42rem;
+  margin: 0.5rem auto 2rem;
+  font-style: italic;
+}
+.portada-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.72);
+}
+.portada-meta strong { color: var(--blanco); display: block; margin-bottom: .1rem; }
+
+/* ── BARRA LATERAL + CONTENIDO ─────────────────────────────────────────── */
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--verde-oscuro);
+  color: var(--blanco);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 1.5rem 0 3rem;
+}
+.sidebar-title {
+  font-size: 0.7rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--verde-menta);
+  padding: 0 1.2rem 0.6rem;
+  font-weight: 600;
+}
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 1.2rem;
+  text-decoration: none;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.78);
+  border-left: 3px solid transparent;
+  transition: all .15s;
+}
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  background: rgba(122,184,147,0.12);
+  color: var(--blanco);
+  border-left-color: var(--verde-menta);
+}
+.sidebar nav a .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  background: rgba(122,184,147,0.2);
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.sidebar-section {
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ── ÁREA DE CONTENIDO ─────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  min-width: 0;
+  max-width: 900px;
+  padding: 3rem 2.5rem 6rem;
+}
+@media (max-width: 780px) {
+  .sidebar { display: none; }
+  .content { padding: 2rem 1rem 4rem; }
+}
+
+/* ── TIPOGRAFÍA ────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-family: 'Merriweather', serif;
+  color: var(--verde-oscuro);
+  line-height: 1.3;
+}
+h2 {
+  font-size: 1.55rem;
+  margin-top: 3.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--verde-menta);
+}
+h2::before {
+  content: attr(data-num);
+  display: inline-block;
+  background: var(--verde-oscuro);
+  color: var(--ocre-claro);
+  font-size: 0.72rem;
+  font-family: 'Source Sans 3', sans-serif;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  margin-right: 0.7rem;
+  vertical-align: middle;
+  position: relative; top: -2px;
+}
+h3 {
+  font-size: 1.15rem;
+  margin-top: 2rem;
+  margin-bottom: 0.6rem;
+  color: var(--verde-medio);
+}
+h4 {
+  font-size: 0.95rem;
+  margin-top: 1.4rem;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ocre);
+  font-family: 'Source Sans 3', sans-serif;
+  font-weight: 700;
+}
+p { margin-bottom: 0.9rem; }
+p:last-child { margin-bottom: 0; }
+
+/* ── COMPONENTES ───────────────────────────────────────────────────────── */
+
+/* Nota/información */
+.nota {
+  border-left: 4px solid var(--verde-claro);
+  background: var(--verde-pale);
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 6px 6px 0;
+  margin: 1.2rem 0;
+  font-size: 0.93rem;
+}
+.nota strong { color: var(--verde-oscuro); }
+
+/* Alerta */
+.alerta {
+  border-left: 4px solid var(--ocre);
+  background: #fdf4e7;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 6px 6px 0;
+  margin: 1.2rem 0;
+  font-size: 0.93rem;
+}
+.alerta strong { color: var(--ocre); }
+
+/* Error / zona roja */
+.peligro {
+  border-left: 4px solid var(--rojo);
+  background: var(--rojo-pale);
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 6px 6px 0;
+  margin: 1.2rem 0;
+  font-size: 0.93rem;
+}
+
+/* Caja ejemplo */
+.ejemplo {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 1.2rem 1.4rem;
+  margin: 1.4rem 0;
+}
+.ejemplo-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--verde-oscuro);
+  color: var(--ocre-claro);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.65rem;
+  border-radius: 4px;
+  margin-bottom: 0.8rem;
+}
+
+/* Caja de fórmula */
+.formula-box {
+  background: var(--verde-oscuro);
+  color: var(--blanco);
+  border-radius: 8px;
+  padding: 1rem 1.4rem;
+  margin: 1.2rem 0;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.88rem;
+  line-height: 1.8;
+}
+.formula-box .fn {
+  color: var(--verde-menta);
+  font-weight: 600;
+}
+.formula-box .comentario {
+  color: rgba(255,255,255,0.5);
+  font-style: italic;
+}
+
+/* Tabla de indicadores */
+.tabla-indicadores {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin: 1rem 0 1.4rem;
+}
+.tabla-indicadores th {
+  background: var(--verde-oscuro);
+  color: var(--blanco);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  font-family: 'Source Sans 3', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.tabla-indicadores td {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+.tabla-indicadores tr:nth-child(even) td { background: var(--crema); }
+.tabla-indicadores tr:hover td { background: var(--verde-pale); }
+.chip {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.chip-verde { background: var(--verde-pale); color: var(--verde-oscuro); }
+.chip-amarillo { background: #fef3cd; color: #7a5200; }
+.chip-rojo { background: var(--rojo-pale); color: var(--rojo); }
+
+/* Tarjeta de sección/pestaña */
+.tab-card {
+  background: var(--blanco);
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  margin-bottom: 0.8rem;
+  overflow: hidden;
+}
+.tab-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--verde-medio);
+  color: var(--blanco);
+  padding: 0.75rem 1.2rem;
+}
+.tab-card-header .badge {
+  background: var(--ocre);
+  color: var(--blanco);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.tab-card-header h3 {
+  margin: 0;
+  color: var(--blanco);
+  font-size: 1rem;
+}
+.tab-card-body {
+  padding: 1.1rem 1.4rem;
+}
+
+/* Pasos numerados */
+.pasos { counter-reset: paso; list-style: none; padding: 0; margin: 1rem 0; }
+.pasos li {
+  counter-increment: paso;
+  display: flex;
+  gap: 0.9rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.94rem;
+}
+.pasos li::before {
+  content: counter(paso);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  min-width: 1.7rem;
+  background: var(--verde-claro);
+  color: var(--blanco);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.78rem;
+  margin-top: .1rem;
+}
+
+/* Grilla de conceptos */
+.conceptos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+.concepto-card {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-top: 3px solid var(--verde-claro);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+}
+.concepto-card .termino {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--verde-oscuro);
+  margin-bottom: 0.3rem;
+  font-family: 'Source Code Pro', monospace;
+}
+.concepto-card p { font-size: 0.85rem; color: var(--texto-suave); }
+
+/* Mapa de metas */
+.metas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 1rem 0;
+}
+.metas-table th {
+  background: var(--crema-dark);
+  color: var(--verde-oscuro);
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border-bottom: 2px solid var(--verde-menta);
+}
+.metas-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--crema-dark);
+  vertical-align: middle;
+}
+.metas-table tr:last-child td { border-bottom: none; }
+
+/* Semáforo */
+.semaforo-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.4rem 0; font-size: 0.88rem; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.dot-verde { background: #22c55e; }
+.dot-amarillo { background: #f59e0b; }
+.dot-rojo { background: #ef4444; }
+
+/* Bloques de flujo horizontal */
+.flujo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.flujo-item {
+  background: var(--verde-medio);
+  color: var(--blanco);
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.flujo-arrow { color: var(--ocre); font-weight: 700; font-size: 1rem; }
+.flujo-item.resultado { background: var(--ocre); }
+.flujo-item.negativo { background: var(--rojo); }
+
+/* Columnas para comparar */
+.cols2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+@media (max-width: 580px) { .cols2 { grid-template-columns: 1fr; } }
+
+/* TOC intro */
+.toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+  margin: 1.2rem 0;
+}
+.toc-item {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  text-decoration: none;
+  color: var(--texto);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  transition: box-shadow .15s;
+}
+.toc-item:hover { box-shadow: 0 2px 8px rgba(45,92,64,.15); }
+.toc-item .toc-num {
+  background: var(--verde-oscuro);
+  color: var(--ocre-claro);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.toc-item span { font-size: 0.85rem; font-weight: 600; color: var(--verde-medio); }
+
+/* Pie de página */
+footer {
+  background: var(--verde-oscuro);
+  color: rgba(255,255,255,0.6);
+  padding: 2rem 2rem;
+  font-size: 0.82rem;
+  text-align: center;
+}
+footer a { color: var(--verde-menta); }
+
+/* Print */
+@media print {
+  .sidebar { display: none !important; }
+  .portada { page-break-after: always; }
+  h2 { break-before: page; }
+  .ejemplo, .tab-card, .nota, .alerta { break-inside: avoid; }
+  .formula-box { break-inside: avoid; }
+  .cols2, .conceptos-grid, .toc-grid { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     PORTADA
+══════════════════════════════════════════════════════════════════════ -->
+<div class="portada">
+  <p class="portada-kicker">Documento de estudio y referencia</p>
+  <h1>Manual de uso<br><span>Sistema de Gestión Estratégica Lechera</span></h1>
+  <p class="portada-sub">Guía pedagógica para estudiantes de zootecnia y asesores técnicos en explotaciones bovinas lecheras</p>
+  <div class="portada-meta">
+    <div><strong>Autor</strong>José Fernando Guarín Montoya, Ph.D.</div>
+    <div><strong>Grupo</strong>Gamma — Universidad de Antioquia</div>
+    <div><strong>Referencia</strong>Cerón-Muñoz y Guarín (2025), caps. 3-4</div>
+    <div><strong>Versión de la app</strong>2.0 · Octubre 2026</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     CUERPO: BARRA LATERAL + CONTENIDO
+══════════════════════════════════════════════════════════════════════ -->
+<div class="layout">
+
+<!-- Barra lateral de navegación -->
+<aside class="sidebar">
+  <p class="sidebar-title">Contenido</p>
+  <nav>
+    <a href="#intro"><span class="num">0</span> Introducción</a>
+    <a href="#inicio"><span class="num">►</span> Primeros pasos</a>
+    <div class="sidebar-section"></div>
+    <p class="sidebar-title">Pestañas</p>
+    <a href="#tab1"><span class="num">1</span> Datos Generales</a>
+    <a href="#tab2"><span class="num">2</span> Ingresos</a>
+    <a href="#tab3"><span class="num">3</span> Gastos</a>
+    <a href="#tab4"><span class="num">4</span> Inversiones</a>
+    <a href="#tab5"><span class="num">5</span> Resultados</a>
+    <a href="#tab6"><span class="num">6</span> Indicadores 100 kg EQ</a>
+    <a href="#tab7"><span class="num">7</span> Diagnóstico</a>
+    <a href="#tab8"><span class="num">8</span> Simulador</a>
+    <a href="#tab9"><span class="num">9</span> Planificación</a>
+    <a href="#tab10"><span class="num">10</span> Análisis IA</a>
+    <div class="sidebar-section"></div>
+    <p class="sidebar-title">Referencia</p>
+    <a href="#glosario">Glosario completo</a>
+    <a href="#semaforo">Tabla de metas</a>
+    <a href="#flujouso">Flujo de uso</a>
+  </nav>
+</aside>
+
+<!-- Área de contenido -->
+<main class="content">
+
+<!-- ─── 0. INTRODUCCIÓN ─────────────────────────────────────────────── -->
+<section id="intro">
+<h2 data-num="0">¿Qué es esta aplicación y para qué sirve?</h2>
+
+<p>El <strong>Sistema de Gestión Estratégica Lechera</strong> es una herramienta de análisis financiero diseñada para apoyar la toma de decisiones en predios dedicados a la producción de leche bovina. Permite registrar datos productivos y económicos de una finca, calcular automáticamente los principales indicadores de rentabilidad, y explorar escenarios futuros.</p>
+
+<p>La app implementa el modelo bioeconómico descrito en <em>Cerón-Muñoz y Guarín (2025)</em>, y viene precargada con los datos de la finca <strong>«El Plan»</strong>, ubicada en San Pedro de los Milagros (Antioquia, Colombia), que sirve como caso de referencia a lo largo del libro.</p>
+
+<div class="nota">
+<strong>¿Quién puede usarla?</strong> Este manual está escrito pensando en dos tipos de usuario: <strong>estudiantes de zootecnia en etapa de práctica o asesoría</strong>, que necesitan entender el fundamento conceptual de cada indicador, y <strong>productores rurales con conocimiento básico de su finca</strong>, que simplemente quieren ingresar sus datos y obtener una lectura de la situación financiera.
+</div>
+
+<h3>¿Qué puede hacer la aplicación?</h3>
+<div class="toc-grid">
+  <a class="toc-item" href="#tab1"><span class="toc-num">1</span><span>Registrar datos productivos y patrimoniales</span></a>
+  <a class="toc-item" href="#tab2"><span class="toc-num">2</span><span>Desglosar todas las fuentes de ingreso</span></a>
+  <a class="toc-item" href="#tab3"><span class="toc-num">3</span><span>Clasificar gastos variables y fijos</span></a>
+  <a class="toc-item" href="#tab4"><span class="toc-num">4</span><span>Valorar la inversión y calcular depreciación</span></a>
+  <a class="toc-item" href="#tab5"><span class="toc-num">5</span><span>Ver el resultado financiero del periodo</span></a>
+  <a class="toc-item" href="#tab6"><span class="toc-num">6</span><span>Indicadores por 100 kg de leche equivalente</span></a>
+  <a class="toc-item" href="#tab7"><span class="toc-num">7</span><span>Diagnóstico de eficiencia y FODA cuantificado</span></a>
+  <a class="toc-item" href="#tab8"><span class="toc-num">8</span><span>Simulación de escenarios y análisis de riesgo</span></a>
+  <a class="toc-item" href="#tab9"><span class="toc-num">9</span><span>Proyección y planificación estratégica</span></a>
+  <a class="toc-item" href="#tab10"><span class="toc-num">10</span><span>Análisis automático con inteligencia artificial</span></a>
+</div>
+
+<h3>El caso de referencia: Finca «El Plan»</h3>
+<p>Todos los campos vienen inicialmente cargados con datos de esta finca real. Sus cifras clave permiten entender en contexto qué representa cada indicador:</p>
+<table class="metas-table">
+  <thead><tr><th>Variable</th><th>Valor</th><th>Qué significa</th></tr></thead>
+  <tbody>
+    <tr><td>Vacas en producción</td><td><strong>114</strong></td><td>Hato activo que genera ingresos</td></tr>
+    <tr><td>Área total</td><td><strong>125 ha</strong></td><td>Base territorial de la finca</td></tr>
+    <tr><td>Producción anual</td><td><strong>902.300 L</strong></td><td>Volumen total vendido al año</td></tr>
+    <tr><td>Precio de la leche</td><td><strong>$2.108/L</strong></td><td>Precio promedio pagado en finca</td></tr>
+    <tr><td>Costo de producción</td><td><strong>$1.750/L</strong></td><td>Gasto total dividido entre litros producidos</td></tr>
+    <tr><td>Margen operativo</td><td><strong>17,0 %</strong></td><td>De cada $100 de leche, quedan $17 de beneficio</td></tr>
+    <tr><td>Sistema de producción</td><td><strong>Pastoreo con suplementación</strong></td><td>Trópico alto; zona lechera del norte de Antioquia</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ─── PRIMEROS PASOS ──────────────────────────────────────────────── -->
+<section id="inicio">
+<h2 data-num="►">Primeros pasos en la aplicación</h2>
+
+<h3>Abrir la aplicación</h3>
+<p>La app funciona directamente en un navegador web (Chrome, Firefox o Edge). Solo hay que abrir el archivo <code>index.html</code> o el enlace que le compartieron. No requiere instalación ni conexión a internet (excepto la función de Análisis IA).</p>
+
+<h3>Interfaz general</h3>
+<p>Al abrir la app encontrará tres zonas principales:</p>
+<ol class="pasos">
+  <li><strong>Encabezado verde (parte superior):</strong> muestra el título del sistema, el selector de periodo de análisis (anual, semestral o trimestral), el botón de Estacionalidad y una barra de progreso que indica cuántas pestañas ha completado.</li>
+  <li><strong>Barra de pestañas (debajo del encabezado):</strong> las 10 pestañas del sistema, cada una con un ícono. Puede hacer clic en cualquiera o avanzar con los botones «Anterior» y «Siguiente» del pie de página.</li>
+  <li><strong>Área de contenido:</strong> el formulario y los gráficos de la pestaña activa. Cada pestaña tiene campos de entrada a la izquierda y visualizaciones a la derecha.</li>
+</ol>
+
+<h3>¿Por dónde empezar?</h3>
+<p>El flujo recomendado es recorrer las pestañas en orden, de la 1 a la 4, ingresando los datos de la finca. Las pestañas 5 a 10 muestran análisis calculados automáticamente a partir de esos datos.</p>
+
+<div class="flujo">
+  <div class="flujo-item">1. Datos</div>
+  <div class="flujo-arrow">→</div>
+  <div class="flujo-item">2. Ingresos</div>
+  <div class="flujo-arrow">→</div>
+  <div class="flujo-item">3. Gastos</div>
+  <div class="flujo-arrow">→</div>
+  <div class="flujo-item">4. Inversiones</div>
+  <div class="flujo-arrow">→</div>
+  <div class="flujo-item resultado">5–10. Análisis</div>
+</div>
+
+<h3>El selector de periodo</h3>
+<p>En el encabezado hay un selector llamado <strong>«Periodo de análisis»</strong>. Afecta cómo se muestran los resultados:</p>
+<table class="metas-table">
+  <thead><tr><th>Opción</th><th>Qué muestra</th><th>Cuándo usarlo</th></tr></thead>
+  <tbody>
+    <tr><td>Anualizado</td><td>Los 12 meses completos</td><td>Análisis de largo plazo, comparación entre años</td></tr>
+    <tr><td>Semestral</td><td>Primer o segundo semestre</td><td>Fincas con marcada temporada seca/lluviosa</td></tr>
+    <tr><td>Trimestral</td><td>Uno de los cuatro trimestres</td><td>Seguimiento de corto plazo, ajuste de presupuesto</td></tr>
+  </tbody>
+</table>
+
+<div class="nota">
+<strong>Dato importante:</strong> La app guarda todos los datos internamente como <strong>valores anuales</strong>. El periodo de análisis solo afecta la visualización, dividiendo proporcionalmente los flujos. Los inventarios (número de animales, área, precios) nunca se dividen.
+</div>
+
+<h3>Temporalidad de los datos que usted ingresa</h3>
+<p>En la pestaña «Datos Generales» encontrará la tarjeta <strong>«Temporalidad de los datos registrados»</strong>. Aquí puede indicarle a la app si los números que va a escribir (producción, ingresos, gastos) corresponden a cifras mensuales, trimestrales, semestrales o anuales. La app calculará el <strong>factor de anualización</strong> y convertirá todo internamente para que los análisis sean consistentes.</p>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Ejemplo práctico</div>
+  <p>Si usted solo tiene el registro de los últimos 3 meses, seleccione <em>«Trimestrales»</em> e indique <em>1 periodo</em>. La app multiplicará todos los flujos por 4 para estimar el año completo. Tenga en cuenta que esto puede sobrestimar o subestimar rubros que no son uniformes a lo largo del año, como la venta de animales.</p>
+</div>
+
+<h3>Guardar y exportar</h3>
+<ul class="pasos">
+  <li>El botón <strong>💾 Guardar</strong> (pie de página) marca la pestaña actual como completada y muestra la barra de progreso.</li>
+  <li>El botón <strong>Exportar datos (JSON)</strong> en la pestaña de Datos Generales descarga todos los datos en un archivo que puede reimportar más adelante con <strong>Importar JSON</strong>.</li>
+  <li>El botón <strong>Restaurar «El Plan»</strong> vuelve los datos al caso de referencia del libro.</li>
+</ul>
+</section>
+
+<!-- ─── TAB 1 ────────────────────────────────────────────────────────── -->
+<section id="tab1">
+<h2 data-num="1">Datos Generales</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 1</span>
+    <h3>Datos productivos de la finca</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Es el punto de partida. Aquí se describe la estructura básica de la empresa ganadera: cuántos animales, cuánta tierra, cuánta leche produce y a qué precio la vende.</p>
+  </div>
+</div>
+
+<h3>Campos que debe completar</h3>
+<table class="tabla-indicadores">
+  <thead><tr><th>Campo</th><th>Descripción</th><th>Ejemplo (El Plan)</th></tr></thead>
+  <tbody>
+    <tr><td>Vacas en producción</td><td>Número de vacas actualmente ordeñando. No incluye novillas ni vacas secas</td><td>114</td></tr>
+    <tr><td>Número de novillas</td><td>Animales de reposición. Contribuyen al valor del inventario pero no producen leche aún</td><td>101</td></tr>
+    <tr><td>Área de la finca (ha)</td><td>Superficie total. Sirve para calcular productividad por hectárea y carga animal</td><td>125 ha</td></tr>
+    <tr><td>Volumen de leche</td><td>Producción total en el periodo registrado (L). La app lo anualiza automáticamente</td><td>902.300 L/año</td></tr>
+    <tr><td>Precio de la leche ($/L)</td><td>Precio promedio pagado por el comprador en finca, por litro</td><td>$2.108/L</td></tr>
+    <tr><td>Potencial genético (L/vaca/día)</td><td>Producción esperada según el mérito genético promedio del hato. Se usa para calcular la eficiencia operativa</td><td>25 L/vaca/día</td></tr>
+    <tr><td>Número de empleados</td><td>Total de personas contratadas (fijos + temporales)</td><td>7</td></tr>
+    <tr><td>Valor por hectárea ($)</td><td>Precio comercial del suelo en la zona. Se usa para valorar la inversión en tierra</td><td>$5.000.000/ha</td></tr>
+    <tr><td>Región y sistema de producción</td><td>Información descriptiva que contextualiza el análisis</td><td>San Pedro; pastoreo con suplementación</td></tr>
+  </tbody>
+</table>
+
+<h3>Indicadores que calcula automáticamente</h3>
+<p>Con solo estos datos, la app ya puede mostrar varios indicadores clave en tarjetas resumen:</p>
+<div class="conceptos-grid">
+  <div class="concepto-card">
+    <div class="termino">L/vaca/día</div>
+    <p>Litros diarios por vaca en producción. Mide la productividad individual del hato. <em>El Plan: 21,6 L/vaca/día.</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">L/ha/año</div>
+    <p>Litros producidos por hectárea disponible. Refleja la intensificación del sistema. <em>El Plan: 7.218 L/ha.</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Carga animal</div>
+    <p>Vacas + novillas dividido entre el área. Indica la presión sobre los potreros. <em>El Plan: 1,72 animales/ha.</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Eficiencia operativa (Eₒ)</div>
+    <p>Producción real ÷ potencial genético. Indica qué fracción del potencial está siendo aprovechada. Si Eₒ = 0,86, la vaca produce el 86 % de lo que podría.</p>
+  </div>
+</div>
+
+<div class="formula-box">
+  <span class="fn">Eₒ</span> = (Litros/vaca/día producidos) / (Potencial genético en L/vaca/día)
+  <br><span class="comentario">// El Plan: Eₒ = 21,6 / 25 = 0,864 → la finca aprovecha el 86,4 % del potencial</span>
+</div>
+
+<div class="alerta">
+<strong>Para el asesor técnico:</strong> una eficiencia operativa por debajo de 0,80 indica pérdidas importantes de productividad debidas a nutrición deficiente, enfermedades, fallos reproductivos o manejo de praderas. El módulo de Diagnóstico cuantifica este impacto económico.
+</div>
+</section>
+
+<!-- ─── TAB 2 ────────────────────────────────────────────────────────── -->
+<section id="tab2">
+<h2 data-num="2">Ingresos</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 2</span>
+    <h3>Todas las fuentes de ingresos operativos</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Un error frecuente en la contabilidad de fincas es registrar únicamente la venta de leche. Esta pestaña captura el ingreso <em>total</em>, que incluye todas las entradas de dinero y cambios en inventario.</p>
+  </div>
+</div>
+
+<h3>Concepto fundamental: Ingreso Total vs. venta de leche</h3>
+<p>El modelo distingue claramente entre el <strong>ingreso por venta de leche</strong> (calculado automáticamente como Volumen × Precio) y los demás ingresos. Esta distinción es clave porque el indicador de «Leche Equivalente» normaliza todos los ingresos como si fueran litros de leche, permitiendo comparar fincas con diferentes combinaciones de productos.</p>
+
+<table class="tabla-indicadores">
+  <thead><tr><th>Campo de ingreso</th><th>Descripción</th><th>El Plan (anual)</th></tr></thead>
+  <tbody>
+    <tr><td>Venta de leche</td><td><em>Automático:</em> Volumen × Precio/L. No se edita directamente</td><td>$1.902 M</td></tr>
+    <tr><td>Venta de animales</td><td>Machos destetados, vacas de descarte, novillas excedentes</td><td>$64,7 M</td></tr>
+    <tr><td>Venta de estiércol</td><td>Abono orgánico comercializado como subproducto</td><td>$0</td></tr>
+    <tr><td>Otros ingresos</td><td>Arrendamientos, servicios de maquinaria, forraje vendido</td><td>$0</td></tr>
+    <tr><td>Cambio en inventario de animales</td><td>Si el hato creció durante el periodo, ese crecimiento tiene valor económico aunque no se haya vendido. Puede ser negativo si el hato se redujo</td><td>$27,5 M</td></tr>
+    <tr><td>Cambio en inventario de alimentos</td><td>Si se acumuló silo, heno o concentrado que aún no se usó, eso es un activo. Puede ser negativo si se consumió stock previo</td><td>$9,0 M</td></tr>
+  </tbody>
+</table>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Ejemplo: ¿por qué incluir el cambio en inventario?</div>
+  <p>Imagine que al final del año su hato tiene 5 novillas más que al inicio, cada una valorada en $955.000. Aunque no las vendió, su patrimonio aumentó en $4.775.000. Ese es un <em>ingreso económico real</em> del periodo, y no incluirlo subestimaría los resultados de la finca.</p>
+  <p>Por la misma razón, si consumió ensilaje que había producido el año anterior, su costo de alimentación es más bajo, pero el resultado de <em>este</em> año está siendo «subsidiado» por el trabajo del año pasado.</p>
+</div>
+
+<h3>Análisis que muestra la pestaña</h3>
+<p>A la derecha del formulario aparece el <strong>gráfico de composición de ingresos</strong> y un cuadro con indicadores derivados:</p>
+<ul class="pasos">
+  <li><strong>Participación de la leche:</strong> qué fracción del ingreso total proviene de la venta de leche. En sistemas especializados suele superar el 80 %; si es muy baja puede indicar dependencia excesiva de la venta de animales.</li>
+  <li><strong>Ingreso por vaca y por hectárea:</strong> métricas de productividad económica del capital.</li>
+  <li><strong>Leche equivalente:</strong> Ingresos totales ÷ Precio del litro. Cuántos litros habría que vender para generar el mismo ingreso. Sirve para normalizar la contabilidad cuando hay múltiples productos.</li>
+</ul>
+</section>
+
+<!-- ─── TAB 3 ────────────────────────────────────────────────────────── -->
+<section id="tab3">
+<h2 data-num="3">Gastos</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 3</span>
+    <h3>Gastos básicos (variables) y gastos adicionales (fijos)</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>La app organiza los costos en dos grandes categorías: los que varían con el nivel de producción y los que permanecen relativamente fijos.</p>
+  </div>
+</div>
+
+<h3>Gastos básicos (variables)</h3>
+<p>Son los costos directamente ligados a producir leche. Si la finca produce más o menos, estos costos tienden a moverse en la misma dirección. El rubro más importante es la alimentación.</p>
+
+<table class="tabla-indicadores">
+  <thead><tr><th>Rubro</th><th>¿Qué incluye?</th><th>El Plan (anual)</th></tr></thead>
+  <tbody>
+    <tr><td>Alimentos comprados</td><td>Concentrados, harina de soya, sal mineralizada, melaza, heno, ensilaje comprado, subproductos agroindustriales</td><td>$559 M</td></tr>
+    <tr><td>Correctivos y fertilizantes</td><td>Cal agrícola, abonos para praderas, enmiendas del suelo</td><td>$90 M</td></tr>
+    <tr><td>Energía y combustibles</td><td>Electricidad del ordeño, combustible de tractores y generadores</td><td>$90 M</td></tr>
+    <tr><td>Mantenimiento maquinaria</td><td>Reparaciones de tractores, equipos de ordeño, enfriamiento</td><td>$45 M</td></tr>
+    <tr><td>Mantenimiento instalaciones</td><td>Reparaciones de cercas, establos, corrales. Si supera el 30 % del valor del bien, se reclasifica como inversión</td><td>$45 M</td></tr>
+    <tr><td>Sanidad</td><td>Vacunas, antiparasitarios, antibióticos, honorarios veterinarios</td><td>$55 M</td></tr>
+    <tr><td>Reproducción</td><td>Inseminación artificial, sincronización de celos, diagnósticos de preñez</td><td>$35 M</td></tr>
+    <tr><td>BST (somatotropina bovina)</td><td>Hormona de crecimiento usada en algunos sistemas para incrementar la producción de leche</td><td>$30 M</td></tr>
+    <tr><td>Semillas</td><td>Establecimiento y renovación de pasturas</td><td>$18 M</td></tr>
+    <tr><td>Material de consumo</td><td>Filtros de ordeño, detergentes, pezoneras, guantes, registros</td><td>$50 M</td></tr>
+    <tr><td>Alquiler de máquinas</td><td>Contratación de maquinaria por horas (cosechadoras, tractores ajenos)</td><td>$40 M</td></tr>
+    <tr><td>Impuestos</td><td>Impuesto predial, ICA, estampillas, tasa de matadero</td><td>$42 M</td></tr>
+    <tr><td>Otros gastos operativos</td><td>Transporte de leche, comunicaciones, gastos de bienestar animal, etc.</td><td>$40,7 M</td></tr>
+  </tbody>
+</table>
+
+<h3>Gastos adicionales (fijos)</h3>
+<p>Son los costos que se generan independientemente del nivel de producción. Aunque la finca no produzca nada en un mes, hay que pagar estos compromisos.</p>
+
+<table class="tabla-indicadores">
+  <thead><tr><th>Rubro</th><th>¿Qué incluye?</th><th>El Plan (anual)</th></tr></thead>
+  <tbody>
+    <tr><td>Mano de obra fija</td><td>Salarios, prestaciones sociales (cesantías, primas, vacaciones), parafiscales de los empleados permanentes</td><td>$162 M</td></tr>
+    <tr><td>Mano de obra temporal</td><td>Jornales pagados en épocas de mayor demanda (siembra, cosecha, vacunaciones masivas)</td><td>$32,2 M</td></tr>
+    <tr><td>Administración</td><td>Honorarios del administrador, contabilidad, asesoría técnica, software</td><td>$96 M</td></tr>
+    <tr><td>Intereses de préstamos</td><td>Costo financiero del crédito bancario (solo los intereses, no la amortización del capital)</td><td>$45 M</td></tr>
+    <tr><td>Depreciación (automático)</td><td>Desgaste anual de los activos calculado desde la pestaña Inversiones. No es una salida de caja pero sí un costo económico real</td><td>Ver Inversiones</td></tr>
+  </tbody>
+</table>
+
+<div class="nota">
+<strong>¿Qué es la depreciación?</strong> Un tractor que cuesta $200 millones y dura 10 años «consume» $20 millones de valor por año. Ese desgaste es un costo real de la operación aunque no implique un pago en efectivo. Ignorarlo sobreestima la rentabilidad de la finca.
+</div>
+
+<h3>Indicadores de estructura de costos</h3>
+<p>La pestaña muestra tres indicadores fundamentales para comparar la eficiencia de la finca con referencias del sector:</p>
+
+<div class="formula-box">
+  <span class="fn">Participación de la alimentación</span> = Costo de alimentos / Costo total
+  <br><span class="comentario">// El Plan: 559 / 1.280 = 43,7 % · Referencia sector: ≈ 35,4 %</span>
+  <br><br>
+  <span class="fn">Participación de la mano de obra</span> = (Fija + Temporal) / Costo total
+  <br><span class="comentario">// El Plan: 194 / 1.280 = 15,2 % · Referencia: ≈ 12,3 %</span>
+  <br><br>
+  <span class="fn">Costo por litro</span> = Costo total / Volumen producido
+  <br><span class="comentario">// El Plan: $1.750/L</span>
+</div>
+
+<div class="alerta">
+<strong>Para el asesor:</strong> cuando la alimentación supera el 45 % del costo total, el primer diagnóstico es revisar la eficiencia de conversión. A veces el problema no es que se compra demasiado concentrado, sino que las vacas están produciendo por debajo de su potencial, con lo cual el costo por litro se dispara aunque el precio absoluto del alimento sea razonable.
+</div>
+</section>
+
+<!-- ─── TAB 4 ────────────────────────────────────────────────────────── -->
+<section id="tab4">
+<h2 data-num="4">Inversiones</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 4</span>
+    <h3>Valoración del capital y cálculo de depreciación</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Aquí se registra el valor de todo lo que la finca posee. Estos datos permiten calcular el retorno sobre la inversión (ROI), que responde a la pregunta: ¿este capital estaría mejor empleado en otra inversión?</p>
+  </div>
+</div>
+
+<h3>Cuatro categorías de inversión</h3>
+<div class="conceptos-grid">
+  <div class="concepto-card">
+    <div class="termino">Tierra</div>
+    <p>Área × valor por hectárea. <em>El Plan: 125 ha × $5.000.000 = $625 M</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Animales</div>
+    <p>Vacas × precio por vaca + novillas × precio por novilla. <em>El Plan: 114 × $2.600.000 + 101 × $955.000 = $392 M</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Instalaciones</div>
+    <p>Valor de establos, salas de ordeño, silos, corrales, bodegas. <em>El Plan: $192 M</em></p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Maquinaria</div>
+    <p>Tractores, equipos de ordeño, enfriamiento, vehículos. <em>El Plan: $132,5 M</em></p>
+  </div>
+</div>
+
+<p>La <strong>inversión total</strong> de «El Plan» es aproximadamente <strong>$1.342 M</strong> (tierra + animales + instalaciones + maquinaria).</p>
+
+<h3>Tasas de depreciación anuales</h3>
+<p>La depreciación mide a qué velocidad se consume el valor de los activos. La app calcula automáticamente el gasto anual en función de las tasas ingresadas:</p>
+
+<table class="metas-table">
+  <thead><tr><th>Activo</th><th>Tasa referencia</th><th>Cálculo</th><th>¿Por qué esa tasa?</th></tr></thead>
+  <tbody>
+    <tr><td>Vacas lecheras</td><td>20 %/año</td><td>114 × $2.600.000 × 20 %</td><td>Vida productiva típica de 5 años en razas especializadas</td></tr>
+    <tr><td>Instalaciones</td><td>5 %/año</td><td>$192 M × 5 %</td><td>Vida útil de ≈ 20 años para construcciones en concreto</td></tr>
+    <tr><td>Maquinaria de ordeño</td><td>10 %/año</td><td>$132,5 M × 10 %</td><td>Vida útil de 10 años; equipos de refrigeración pueden depreciarse más rápido (15 %)</td></tr>
+  </tbody>
+</table>
+
+<div class="nota">
+<strong>La tierra no se deprecia.</strong> A diferencia de las instalaciones y la maquinaria, el suelo no se desgasta con el uso (bajo una gestión adecuada), por lo que su valor no se reduce con el tiempo. En algunos sistemas, incluso se valoriza.
+</div>
+
+<h3>Deuda y estructura de capital</h3>
+<p>El campo <strong>«Deuda / capital de terceros»</strong> permite registrar el saldo total de créditos bancarios. Junto con la inversión total, permite calcular:</p>
+<div class="formula-box">
+  <span class="fn">Capital propio</span> = Inversión total − Deuda
+  <br><span class="fn">Apalancamiento (CtCp)</span> = Inversión total / Capital propio
+  <br><span class="comentario">// Si CtCp = 1,3 → por cada $1 propio, hay $0,30 de deuda adicional</span>
+  <br><span class="comentario">// Meta: CtCp ≤ 1,3 indica solvencia aceptable</span>
+</div>
+</section>
+
+<!-- ─── TAB 5 ────────────────────────────────────────────────────────── -->
+<section id="tab5">
+<h2 data-num="5">Resultados</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 5</span>
+    <h3>Estado de resultados y cinco indicadores clave</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Con los datos de las cuatro pestañas anteriores, la app construye el estado de resultados completo del periodo y calcula los cinco indicadores fundamentales del modelo.</p>
+  </div>
+</div>
+
+<h3>El estado de resultados simplificado</h3>
+
+<div class="flujo">
+  <div class="flujo-item">Ingresos totales</div>
+  <div class="flujo-arrow">−</div>
+  <div class="flujo-item negativo">Gastos básicos</div>
+  <div class="flujo-arrow">−</div>
+  <div class="flujo-item negativo">Gastos adicionales</div>
+  <div class="flujo-arrow">=</div>
+  <div class="flujo-item resultado">Lucro (resultado)</div>
+</div>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Ejemplo numérico · Finca «El Plan» (año completo)</div>
+  <table class="metas-table">
+    <tbody>
+      <tr><td>Ingresos totales</td><td style="text-align:right; color:#22863a; font-weight:700">$2.003 M</td></tr>
+      <tr><td style="padding-left:1.5rem">— Venta de leche</td><td style="text-align:right">$1.902 M</td></tr>
+      <tr><td style="padding-left:1.5rem">— Venta de animales + cambios inventario</td><td style="text-align:right">$101 M</td></tr>
+      <tr><td>Gastos básicos (variables)</td><td style="text-align:right; color:#c0392b">$1.025 M</td></tr>
+      <tr><td>Gastos adicionales (fijos + depreciación)</td><td style="text-align:right; color:#c0392b">$515 M</td></tr>
+      <tr><td><strong>Lucro del ejercicio</strong></td><td style="text-align:right; font-weight:700; color:#22863a"><strong>$463 M</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h3>Los cinco indicadores del modelo</h3>
+<p>La pestaña presenta, como tarjetas de resumen, los cinco indicadores que el modelo propone para evaluar el desempeño financiero de una finca lechera:</p>
+
+<table class="tabla-indicadores">
+  <thead><tr><th>Indicador</th><th>Fórmula conceptual</th><th>El Plan</th><th>Interpretación</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Margen operativo</strong></td>
+      <td>(Precio − Costo/L) / Precio</td>
+      <td>17,0 %</td>
+      <td>De cada $100 recibidos por leche, quedan $17 después de pagar todos los costos. Un margen ≥ 15 % es «saludable»; por debajo del 5 %, la finca es vulnerable a cualquier choque.</td>
+    </tr>
+    <tr>
+      <td><strong>Eficiencia operativa (Eₒ)</strong></td>
+      <td>Producción real / Potencial genético</td>
+      <td>86,4 %</td>
+      <td>La finca aprovecha el 86 % de lo que sus vacas podrían producir. La brecha del 14 % representa litros que se perdieron por limitaciones de manejo.</td>
+    </tr>
+    <tr>
+      <td><strong>Leche equivalente</strong></td>
+      <td>Ingresos totales / Precio del litro</td>
+      <td>≈ 950.000 L</td>
+      <td>Expresa todos los ingresos en «litros virtuales». Como los ingresos de «El Plan» son mayores que solo la venta de leche, la leche equivalente supera el volumen físico producido.</td>
+    </tr>
+    <tr>
+      <td><strong>Precio mínimo viable</strong></td>
+      <td>= Costo de producción por litro</td>
+      <td>$1.750/L</td>
+      <td>Si el precio de la leche cae a este nivel, la finca queda en punto de equilibrio (margen = 0). Es la señal de alerta ante caídas del precio de mercado.</td>
+    </tr>
+    <tr>
+      <td><strong>ROI de la leche</strong></td>
+      <td>Beneficio de la leche / Inversión total</td>
+      <td>≈ 24 %</td>
+      <td>Por cada $100 invertidos en tierra, animales, instalaciones y maquinaria, la actividad lechera genera $24 de beneficio anual. Un ROI ≥ 9 % es la meta mínima.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Vista temporal</h3>
+<p>Al final de la pestaña hay una tabla que desagrega automáticamente los resultados por trimestre (o por semestre si ese es el modo activo). Esto permite ver estacionalidad sin necesidad de ingresar datos separados para cada subperiodo.</p>
+
+<div class="nota">
+<strong>Ojo con la estacionalidad:</strong> si en su zona la producción de leche es significativamente mayor en algunos meses, los resultados de un trimestre no representan el año completo. Use el botón <strong>«Estacionalidad (δt)»</strong> del encabezado para ajustar los índices y obtener proyecciones más realistas por subperiodo.
+</div>
+</section>
+
+<!-- ─── TAB 6 ────────────────────────────────────────────────────────── -->
+<section id="tab6">
+<h2 data-num="6">Indicadores por 100 kg de Leche Equivalente</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 6</span>
+    <h3>Sistema de indicadores por 100 kg EQ · Benchmarks estratégicos</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Esta pestaña es el núcleo del análisis financiero del modelo. Transforma todos los valores absolutos (en millones de pesos) en cifras relativas comparables entre fincas de distinto tamaño, y compara la finca con metas de referencia del sector.</p>
+  </div>
+</div>
+
+<h3>¿Qué es la «Leche Equivalente» y por qué se usa?</h3>
+<p>La <strong>Leche Equivalente (LE)</strong> es una unidad contable que convierte todos los ingresos de la finca en «litros de leche»:</p>
+
+<div class="formula-box">
+  <span class="fn">Leche Equivalente (L)</span> = Ingresos totales / Precio del litro de leche
+  <br><span class="comentario">// El Plan: $2.003 M / $2.108 = 950.190 L equivalentes</span>
+  <br><br>
+  <span class="fn">Leche Equivalente (kg)</span> = LE (L) × factor de densidad
+  <br><span class="comentario">// Factor 1,0 (convención del libro) o 1,032 (densidad real)</span>
+</div>
+
+<p>Dividir cualquier costo o ingreso entre los kilogramos de Leche Equivalente y multiplicar por 100 produce el <strong>valor por 100 kg EQ</strong>. Esta es la unidad estándar del modelo para comparar eficiencia entre fincas independientemente del tamaño.</p>
+
+<h3>Los cuatro indicadores estratégicos</h3>
+<p>El modelo define cuatro ratios que juntos describen la situación financiera completa de la empresa ganadera:</p>
+
+<div class="formula-box">
+  <span class="fn">CA%Rec</span> (costo de alimentación / ingresos brutos) · meta: ≤ 50 %
+  <br><span class="comentario">// ¿Qué fracción de lo que entra se va en alimentar las vacas?</span>
+  <br><br>
+  <span class="fn">MO%Rec</span> (mano de obra / ingresos brutos) · meta: ≤ 10 %
+  <br><span class="comentario">// ¿Qué fracción se va en pagar el trabajo humano?</span>
+  <br><br>
+  <span class="fn">MLRb</span> (lucro / ingresos brutos) · meta: 10–15 %
+  <br><span class="comentario">// Margen neto sobre ingresos: de cada $100 que entran, ¿cuántos quedan como beneficio?</span>
+  <br><br>
+  <span class="fn">RbCt</span> (ingresos anuales / capital total invertido) · meta: ≥ 0,5
+  <br><span class="comentario">// Por cada peso invertido, ¿cuántos pesos de ingreso se generan en el año?</span>
+  <br><br>
+  <span class="fn">CtCp</span> (capital total / capital propio) · meta: ≤ 1,3
+  <br><span class="comentario">// Indicador de apalancamiento: mayor a 1 significa que hay deuda</span>
+  <br><br>
+  <span class="fn">RSCp</span> = MLRb × RbCt × CtCp · meta: ≥ 6–9 %
+  <br><span class="comentario">// Rentabilidad sobre el capital propio del productor (equivalente al ROE)</span>
+</div>
+
+<h3>Tabla de metas de referencia (benchmarks)</h3>
+<p>La app compara automáticamente cada indicador con rangos de referencia, clasificados como «Cumple», «Vigilar» o «No cumple»:</p>
+
+<table id="semaforo" class="tabla-indicadores">
+  <thead><tr><th>Indicador</th><th>Meta</th><th>Vigilar si...</th><th>El Plan</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td>CA%Rec</td><td>≤ 50 %</td><td>entre 50 % y 60 %</td><td>27,9 %</td><td><span class="chip chip-verde">Cumple</span></td></tr>
+    <tr><td>MO%Rec</td><td>≤ 10 %</td><td>entre 10 % y 12 %</td><td>9,7 %</td><td><span class="chip chip-verde">Cumple</span></td></tr>
+    <tr><td>MLRb (margen neto)</td><td>10–15 %</td><td>entre 5 % y 10 %</td><td>≈ 23 %</td><td><span class="chip chip-verde">Cumple</span></td></tr>
+    <tr><td>RbCt (productividad capital)</td><td>≥ 0,5</td><td>entre 0,4 y 0,5</td><td>≈ 1,49</td><td><span class="chip chip-verde">Cumple</span></td></tr>
+    <tr><td>CtCp (apalancamiento)</td><td>≤ 1,3</td><td>entre 1,3 y 1,5</td><td>Depende deuda</td><td>Varía según deuda</td></tr>
+    <tr><td>RSCp (rentabilidad propia)</td><td>≥ 6–9 %</td><td>entre 3 % y 6 %</td><td>Varía con deuda</td><td>Varía</td></tr>
+    <tr><td>ROI (retorno inversión)</td><td>≥ 6–9 %</td><td>entre 3 % y 6 %</td><td>≈ 24 %</td><td><span class="chip chip-verde">Cumple</span></td></tr>
+    <tr><td>Deuda / inversión</td><td>&lt; 25 %</td><td>entre 25 % y 35 %</td><td>Varía</td><td>Varía</td></tr>
+  </tbody>
+</table>
+
+<div class="alerta">
+<strong>Importante:</strong> estas metas provienen de estudios de referencia con origen en sistemas brasileños adaptados al contexto colombiano. Son orientativas. Una finca en zona de ladera con alto costo de transporte puede tener un CA%Rec mayor sin estar mal gestionada. El asesor debe contextualizar siempre los resultados.
+</div>
+
+<h3>Estado de resultados detallado</h3>
+<p>Al final de la pestaña hay una tabla que muestra todos los conceptos (ingresos y gastos) en tres columnas simultáneas: <em>valor del periodo</em>, <em>valor por 100 kg EQ</em> y <em>porcentaje de los ingresos</em>. Esta vista es la más completa para el análisis comparativo.</p>
+
+<h3>Botón «Exportar CSV»</h3>
+<p>Genera un archivo de hoja de cálculo descargable con todos los valores de esta pestaña. Ideal para incluir en informes de asesoría o para construir bases de datos de seguimiento histórico de la finca.</p>
+</section>
+
+<!-- ─── TAB 7 ────────────────────────────────────────────────────────── -->
+<section id="tab7">
+<h2 data-num="7">Diagnóstico</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 7</span>
+    <h3>Eficiencia operativa, eficiencia sistémica y semáforo FODA</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>El diagnóstico transforma los indicadores en una lectura integrada de fortalezas y debilidades. Responde a la pregunta: ¿qué tan bien funciona este sistema lechero comparado con su propio potencial?</p>
+  </div>
+</div>
+
+<h3>Eficiencia operativa (Eₒ): ¿cuánto del potencial se aprovecha?</h3>
+<p>Ya vista en la pestaña 1, aquí se cuantifica su impacto económico:</p>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Análisis de brecha · Finca «El Plan»</div>
+  <p><strong>Producción real:</strong> 21,6 L/vaca/día · <strong>Potencial genético:</strong> 25 L/vaca/día · <strong>Eₒ = 0,864</strong></p>
+  <p><strong>Brecha:</strong> 3,4 L/vaca/día no aprovechados</p>
+  <p><strong>Litros adicionales si se cierra la brecha (anual):</strong> 3,4 × 114 vacas × 365 días = <strong>141.564 L</strong></p>
+  <p><strong>Ingreso adicional a $2.108/L:</strong> $298,4 M/año solo por aprovechar mejor el potencial genético ya existente, <em>sin añadir costos</em>.</p>
+</div>
+
+<h3>Eficiencia sistémica ponderada (Eₛ)</h3>
+<p>Es un índice compuesto que combina la eficiencia operativa con una evaluación cualitativa de cuatro áreas críticas. El usuario puntúa cada factor de 0 a 1:</p>
+
+<table class="metas-table">
+  <thead><tr><th>Factor</th><th>Peso (w)</th><th>¿Qué evalúa?</th></tr></thead>
+  <tbody>
+    <tr><td>Productividad por vaca</td><td>0,25</td><td>Tomado automáticamente de Eₒ (no se ajusta manualmente)</td></tr>
+    <tr><td>Eficiencia en costos de alimentación</td><td>0,20</td><td>¿Qué tan optimizado está el plan de alimentación?</td></tr>
+    <tr><td>Calidad de leche</td><td>0,20</td><td>Conteo de células somáticas, UFC, higiene del ordeño</td></tr>
+    <tr><td>Sanidad del hato</td><td>0,20</td><td>Tasa de morbilidad, mortalidad, programas preventivos</td></tr>
+    <tr><td>Eficiencia reproductiva</td><td>0,15</td><td>Tasa de preñez, intervalo entre partos, porcentaje de vacías</td></tr>
+  </tbody>
+</table>
+
+<div class="formula-box">
+  <span class="fn">Eₛ</span> = Σ (wⱼ × Fⱼ) = 0,25×Eₒ + 0,20×F_alim + 0,20×F_calidad + 0,20×F_sanidad + 0,15×F_reprod
+  <br><span class="comentario">// Un Eₛ de 0,80 significa que en promedio ponderado el sistema alcanza el 80 % de su potencial</span>
+</div>
+
+<div class="nota">
+<strong>Para el asesor:</strong> la app identifica automáticamente el <em>factor de mayor pérdida ponderada</em> (el que más jala el índice hacia abajo). Si la pérdida mayor es en reproducción, significa que aunque la productividad y la alimentación estén bien, los fallos reproductivos están costando oportunidades económicas significativas.
+</div>
+
+<h3>Semáforo de indicadores y FODA cuantificado</h3>
+<p>Al final de la pestaña, la app genera un panel con 6 indicadores clave clasificados por colores:</p>
+
+<div class="cols2">
+  <div>
+    <div class="semaforo-row"><div class="dot dot-verde"></div><strong>Verde (Fortaleza):</strong> el indicador está en el rango saludable de referencia</div>
+    <div class="semaforo-row"><div class="dot dot-amarillo"></div><strong>Amarillo (Vigilar):</strong> el indicador está fuera del óptimo pero no es crítico aún</div>
+    <div class="semaforo-row"><div class="dot dot-rojo"></div><strong>Rojo (Debilidad):</strong> el indicador requiere atención inmediata</div>
+  </div>
+  <div>
+    <table class="metas-table" style="font-size:0.8rem">
+      <thead><tr><th>Indicador</th><th>Verde si...</th></tr></thead>
+      <tbody>
+        <tr><td>Margen operativo</td><td>≥ 15 %</td></tr>
+        <tr><td>Eficiencia operativa</td><td>≥ 95 %</td></tr>
+        <tr><td>Participación alimentación</td><td>≤ 35 %</td></tr>
+        <tr><td>Litros por empleado/año</td><td>≥ 120.000 L</td></tr>
+        <tr><td>ROI de la leche</td><td>≥ 10 %</td></tr>
+        <tr><td>Relación beneficio/costo</td><td>≥ 1,2</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<p>Los indicadores verdes se listan como <strong>Fortalezas</strong> y los que no lo son, como <strong>Oportunidades de mejora</strong>. Este formato sencillo facilita la comunicación con el productor en la reunión de diagnóstico.</p>
+</section>
+
+<!-- ─── TAB 8 ────────────────────────────────────────────────────────── -->
+<section id="tab8">
+<h2 data-num="8">Simulador de Escenarios</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 8</span>
+    <h3>Análisis de escenarios, sensibilidad y simulación Monte Carlo</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>El simulador permite responder preguntas del tipo «¿qué pasaría si...?». Es la herramienta de gestión del riesgo: le muestra al productor cuánta presión puede absorber la finca antes de entrar en pérdidas.</p>
+  </div>
+</div>
+
+<h3>Palancas del escenario</h3>
+<p>El usuario mueve seis deslizadores que modifican el caso base en porcentajes:</p>
+
+<table class="tabla-indicadores">
+  <thead><tr><th>Palanca</th><th>Controlabilidad</th><th>Rango</th><th>Ejemplo de uso</th></tr></thead>
+  <tbody>
+    <tr><td>Precio de la leche</td><td><span class="chip chip-rojo">No controlable</span></td><td>−30 % a +30 %</td><td>Simular una caída de precio en la siguiente cosecha o un aumento por mejora de calidad</td></tr>
+    <tr><td>Costo de alimentación</td><td><span class="chip chip-amarillo">Parcialmente controlable</span></td><td>−30 % a +30 %</td><td>Aumento de precios de concentrado por alza del dólar; reducción por mayor uso de forraje propio</td></tr>
+    <tr><td>Productividad por vaca</td><td><span class="chip chip-verde">Controlable</span></td><td>−20 % a +20 %</td><td>Impacto de un mejor plan nutricional; efecto de una sequía sobre la disponibilidad de pasto</td></tr>
+    <tr><td>Costo de mano de obra</td><td><span class="chip chip-amarillo">Parcialmente controlable</span></td><td>−20 % a +30 %</td><td>Incremento por alza del salario mínimo; reducción por automatización del ordeño</td></tr>
+    <tr><td>Otros costos</td><td><span class="chip chip-amarillo">Parcialmente controlable</span></td><td>−20 % a +30 %</td><td>Aumento de costos de energía; reducción por mejor gestión de insumos</td></tr>
+    <tr><td>Venta de animales</td><td><span class="chip chip-amarillo">Parcialmente controlable</span></td><td>−50 % a +50 %</td><td>Años con mucha o poca liquidación del hato</td></tr>
+  </tbody>
+</table>
+
+<h3>Escenarios predefinidos</h3>
+<p>La app incluye cuatro escenarios de ejemplo listos para usar con un solo clic:</p>
+<ul class="pasos">
+  <li><strong>Choque de precio (−15 %):</strong> simula una caída fuerte del precio de la leche, similar a las observadas en años de sobreoferta en el mercado colombiano</li>
+  <li><strong>Alza de insumos (+20 % alimentación):</strong> reproduc el efecto de una devaluación del peso sobre los concentrados importados</li>
+  <li><strong>Meta del plan (+3,5 % productividad):</strong> proyecta el efecto de alcanzar la meta de productividad del plan estratégico</li>
+  <li><strong>Escenario adverso combinado:</strong> precio −10 %, alimentación +15 %, productividad −5 %; un año muy difícil</li>
+</ul>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Ejemplo de lectura del simulador</div>
+  <p>Con el escenario «Choque de precio (−15 %)», el margen de «El Plan» pasa del 17 % a aproximadamente el 2,4 %. Esto significa que la finca <em>sobrevive</em> el choque, pero queda en zona crítica. Un productor con costos más altos (costo/L &gt; $2.000) entraría en pérdidas con esa misma caída de precio.</p>
+</div>
+
+<h3>Guardar y comparar escenarios</h3>
+<p>Después de configurar las palancas puede darle un nombre al escenario y guardarlo. La app muestra todos los escenarios guardados en una tabla comparativa que puede exportarse como CSV.</p>
+
+<h3>Análisis de sensibilidad</h3>
+<p>Responde a la pregunta: <strong>¿qué variable mueve más el margen?</strong> La app calcula el efecto de cambiar cada variable en ±N puntos porcentuales (usted define el N) y genera:</p>
+<ul class="pasos">
+  <li>Una tabla de resultados con el margen operativo en cada escenario de +/− para cada variable</li>
+  <li>Un <strong>diagrama de tornado</strong>: barras horizontales que muestran visualmente cuál variable tiene mayor impacto. La variable más larga es la más sensible</li>
+  <li>Un mapa de calor <strong>precio × productividad</strong>: una tabla en la que cada celda muestra el margen operativo para una combinación de variación de precio y variación de productividad. Permite ver en un vistazo cuándo la finca entra en zona de pérdida</li>
+</ul>
+
+<h3>Simulación Monte Carlo</h3>
+<p>La simulación Monte Carlo es una técnica estadística para estimar riesgo. En vez de analizar un escenario a la vez, genera <strong>miles de escenarios aleatorios</strong> simultáneamente y muestra la distribución de resultados posibles.</p>
+
+<div class="nota">
+<strong>¿Cómo funciona?</strong> El usuario define la <em>volatilidad</em> (desviación estándar) de precio, alimentación y productividad. La app sortea miles de valores al azar siguiendo una distribución normal alrededor del escenario actual y calcula el margen en cada iteración. El resultado es una distribución que permite responder: <em>«¿con qué probabilidad esta finca entra en pérdidas en el próximo año?»</em>
+</div>
+
+<p>Los indicadores clave del análisis Monte Carlo son:</p>
+<div class="conceptos-grid">
+  <div class="concepto-card">
+    <div class="termino">Prob. de pérdida</div>
+    <p>% de escenarios donde el margen es negativo. Si es &gt; 10 %, la finca tiene un riesgo elevado.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Percentil 5 (P5)</div>
+    <p>En el 5 % más adverso de escenarios, el margen cae hasta este valor. Sirve como «peor caso razonable».</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Percentil 95 (P95)</div>
+    <p>En el 5 % más favorable, el margen llega a este valor.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Rango P5–P95 de resultado</div>
+    <p>El intervalo de beneficio económico en la mayoría de los escenarios posibles.</p>
+  </div>
+</div>
+</section>
+
+<!-- ─── TAB 9 ────────────────────────────────────────────────────────── -->
+<section id="tab9">
+<h2 data-num="9">Planificación Estratégica</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 9</span>
+    <h3>Metas, proyección plurianual y valor presente del plan</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>La planificación cierra el ciclo de gestión: con el diagnóstico en mano, esta pestaña ayuda a definir metas concretas y cuantificar el valor económico de los programas de mejora.</p>
+  </div>
+</div>
+
+<h3>Parámetros del plan</h3>
+<table class="metas-table">
+  <thead><tr><th>Parámetro</th><th>Qué define</th><th>Valor sugerido</th></tr></thead>
+  <tbody>
+    <tr><td>Meta de margen operativo (%)</td><td>El margen que la finca quiere alcanzar. La app calcula qué productividad o reducción de costo se necesita para llegar ahí</td><td>19,8 % (meta «El Plan»)</td></tr>
+    <tr><td>Choque de precio a resistir (%)</td><td>¿Cuánta caída de precio puede absorber la finca con el plan en marcha?</td><td>15 % de caída</td></tr>
+    <tr><td>Horizonte (años)</td><td>Años de la proyección. Corto: 1 año; Mediano: 1–3 años; Largo: &gt; 5 años</td><td>5 años</td></tr>
+    <tr><td>Crecimiento anual del precio (%)</td><td>Expectativa de evolución del precio de la leche. Suele seguir la inflación</td><td>3 % anual</td></tr>
+    <tr><td>Inflación anual de costos (%)</td><td>Tasa a la que se espera que crezcan los costos (insumos, salarios)</td><td>4,5 % anual</td></tr>
+    <tr><td>Mejora anual de productividad (%)</td><td>¿Cuánto mejora la producción por vaca gracias al plan de manejo?</td><td>1,5 % anual</td></tr>
+    <tr><td>Tasa de descuento (%)</td><td>Rendimiento mínimo exigido al capital (costo de oportunidad). Refleja el riesgo del negocio</td><td>12 % anual</td></tr>
+  </tbody>
+</table>
+
+<h3>Meta SMART generada automáticamente</h3>
+<p>La app traduce los parámetros en una meta concreta con estructura <strong>SMART</strong> (Específica, Medible, Alcanzable, Relevante, con Tiempo definido). Por ejemplo, para «El Plan»:</p>
+<div class="nota">
+<em>«Aumentar la producción promedio de 21,6 a 23,5 L/vaca/día en los próximos 12 meses, mediante ajuste de la dieta y del programa reproductivo, sin aumentar el costo total anual, para llevar el margen operativo del 17,0 % al 19,8 %.»</em>
+</div>
+
+<h3>Proyección y Valor Presente Neto (VPN)</h3>
+<p>La pestaña genera una tabla año a año con: producción esperada, ingresos, costos, beneficio, margen y valor presente del flujo. La suma de los valores presentes es el <strong>VPN del plan</strong>.</p>
+
+<div class="formula-box">
+  <span class="fn">VPN del plan</span> = Σ Beneficio_t / (1 + r)^t,  para t = 1 a horizonte
+  <br><span class="comentario">// r = tasa de descuento. Beneficio_t crece con la productividad y se ajusta por inflación de costos</span>
+  <br><br>
+  <span class="fn">Valor del programa de mejora</span> = VPN con plan − VPN sin plan
+  <br><span class="comentario">// Cuánto vale económicamente implementar el programa de mejora vs. no hacer nada</span>
+</div>
+
+<div class="ejemplo">
+  <div class="ejemplo-titulo">Ejemplo de interpretación</div>
+  <p>Si el VPN con el plan de productividad es $1.200 M y el VPN sin mejora es $900 M, el programa de mejora «vale» $300 M en términos de valor presente. Esto le permite al productor o al banco evaluar si el costo de implementación (una nueva sala de ordeño, un plan nutricional mejorado) está justificado.</p>
+</div>
+
+<h3>Medidas del plan para «El Plan» (referencia del libro)</h3>
+<div class="cols2">
+  <div class="nota">
+    <strong>Corto plazo (0–12 meses · operacionales)</strong>
+    <ul style="margin-top:0.5rem; padding-left:1.2rem;">
+      <li>Nutrición de precisión</li>
+      <li>Optimización de protocolos reproductivos</li>
+      <li>Mejor manejo de praderas y forrajes</li>
+    </ul>
+  </div>
+  <div class="nota">
+    <strong>Mediano plazo (12–36 meses · estructurales)</strong>
+    <ul style="margin-top:0.5rem; padding-left:1.2rem;">
+      <li>Mejoramiento genético</li>
+      <li>Infraestructura productiva</li>
+      <li>Tecnologías de precisión</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- ─── TAB 10 ───────────────────────────────────────────────────────── -->
+<section id="tab10">
+<h2 data-num="10">Análisis con Inteligencia Artificial</h2>
+
+<div class="tab-card">
+  <div class="tab-card-header">
+    <span class="badge">Pestaña 10</span>
+    <h3>Diagnóstico automático con IA · Disponible dentro de Claude</h3>
+  </div>
+  <div class="tab-card-body">
+    <p>Esta pestaña permite obtener un análisis narrativo automático de la situación de la finca, redactado en lenguaje natural, a partir de todos los datos y el escenario activo en el simulador.</p>
+  </div>
+</div>
+
+<h3>¿Cómo funciona?</h3>
+<p>Al presionar el botón <strong>«Analizar con IA»</strong>, la app construye un resumen técnico de todos los indicadores calculados y lo envía a un modelo de inteligencia artificial (Claude, de Anthropic). El modelo devuelve un análisis estructurado con cuatro componentes:</p>
+<ul class="pasos">
+  <li><strong>Resumen general:</strong> una lectura integradora de la situación financiera de la finca</li>
+  <li><strong>Fortalezas:</strong> aspectos donde la finca supera las metas de referencia</li>
+  <li><strong>Debilidades:</strong> indicadores en zona de alerta que requieren atención</li>
+  <li><strong>Recomendaciones:</strong> acciones concretas ordenadas por prioridad</li>
+</ul>
+
+<div class="alerta">
+<strong>Disponibilidad:</strong> esta función solo está disponible cuando la app se ejecuta dentro de la plataforma de Claude (claude.ai). En uso local (abriendo el archivo HTML directamente en el navegador), el botón mostrará un aviso indicando que la función no está disponible. El resto de la app funciona completamente sin conexión.
+</div>
+
+<h3>¿Qué datos recibe la IA?</h3>
+<p>El análisis considera automáticamente: región y sistema de producción, vacas, área, empleados, productividad real vs. potencial, todos los resultados financieros del periodo, los cuatro indicadores estratégicos (CA%Rec, MO%Rec, MLRb, RbCt, CtCp, RSCp), el escenario activo en el simulador y cuántos escenarios guardados hay.</p>
+</section>
+
+<!-- ─── GLOSARIO ─────────────────────────────────────────────────────── -->
+<section id="glosario">
+<h2 data-num="G">Glosario de términos</h2>
+
+<div class="conceptos-grid">
+  <div class="concepto-card">
+    <div class="termino">Lucro</div>
+    <p>Sinónimo de «beneficio» o «resultado neto». Ingresos totales − Gastos totales. Si es positivo, la finca generó valor; si es negativo, destruyó capital.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Margen operativo</div>
+    <p>(Precio − Costo/L) / Precio. Cuánto queda de cada peso recibido después de pagar todos los costos. No considera la inversión requerida.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">ROI (Retorno sobre la Inversión)</div>
+    <p>Lucro / Inversión total. Cuánto rinde el capital empleado. Permite comparar la finca con alternativas de inversión.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">RSCp</div>
+    <p>Rentabilidad Sobre Capital Propio. Lucro / Capital propio. Es el equivalente ganadero del ROE corporativo. Meta: ≥ 6–9 %.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Leche Equivalente (LE)</div>
+    <p>Ingresos totales / Precio del litro. Unidad que convierte todos los ingresos a «litros virtuales» para normalizar comparaciones.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Depreciación</div>
+    <p>Desgaste anual contable de los activos. No implica pago en efectivo pero sí reduce el valor del patrimonio. Se calcula como: Valor del activo × tasa anual.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Gastos básicos</div>
+    <p>Costos variables que fluctúan con la producción: alimentación, sanidad, reproducción, insumos. En el modelo corresponden al «costo circulante».</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Gastos adicionales</div>
+    <p>Costos fijos que permanecen independientemente del nivel de producción: mano de obra, administración, intereses, depreciación.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Costo de oportunidad</div>
+    <p>Lo que se deja de ganar por destinar el capital a la finca en vez de a otra inversión. La tasa de descuento en Planificación lo representa.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">VPN</div>
+    <p>Valor Presente Neto. Cuánto valen hoy los beneficios futuros de un plan, descontados por la tasa de riesgo. Un VPN positivo indica que el plan agrega valor.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Apalancamiento (CtCp)</div>
+    <p>Capital Total / Capital Propio. Mide cuánto de lo que la finca vale pertenece al banco (deuda) vs. al dueño (patrimonio). CtCp = 1,3 → 23 % es deuda.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">δt (delta-t)</div>
+    <p>Índice de estacionalidad. Ajusta cómo se distribuye la producción, el precio o la alimentación entre subperiodos. Un δt de +5 % en un trimestre significa que ese trimestre es 5 % mejor que el promedio.</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Monte Carlo</div>
+    <p>Técnica que genera miles de escenarios aleatorios para estimar la distribución de resultados posibles. Responde: «¿con qué probabilidad la finca entra en pérdidas el próximo año?»</p>
+  </div>
+  <div class="concepto-card">
+    <div class="termino">Potencial genético</div>
+    <p>Producción máxima que un animal puede lograr en condiciones ideales de alimentación, salud y manejo, según su mérito genético. Se usa como denominador de Eₒ.</p>
+  </div>
+</div>
+</section>
+
+<!-- ─── FLUJO DE USO ──────────────────────────────────────────────────── -->
+<section id="flujouso">
+<h2 data-num="◉">Flujo completo de uso en una asesoría de campo</h2>
+
+<p>El siguiente es el proceso recomendado para usar la app en una visita de diagnóstico a una finca:</p>
+
+<ol class="pasos">
+  <li><strong>Antes de ir:</strong> descargue el archivo de la app. Si ya tiene datos de visitas previas, prepárelos en formato JSON para importar.</li>
+  <li><strong>Primer contacto:</strong> revise la tarjeta de «Temporalidad de los datos» y ajuste si los registros disponibles son mensuales o trimestrales.</li>
+  <li><strong>Pestaña 1 – Datos Generales:</strong> ingrese los datos físicos y productivos. Observe la eficiencia operativa inicial y el gráfico de productividades.</li>
+  <li><strong>Pestañas 2 y 3 – Ingresos y Gastos:</strong> registre todos los rubros con el productor. No olvide los cambios de inventario y las depreciaciones.</li>
+  <li><strong>Pestaña 4 – Inversiones:</strong> valore los activos y la deuda. Este paso suele requerir consultar el avalúo catastral o el saldo del crédito.</li>
+  <li><strong>Pestaña 5 – Resultados:</strong> muéstrele al productor el estado de resultados. Use el lenguaje de semáforo: verde/amarillo/rojo.</li>
+  <li><strong>Pestaña 6 – Indicadores 100 kg EQ:</strong> explique la posición de la finca frente a los benchmarks. Exporte el CSV para el informe.</li>
+  <li><strong>Pestaña 7 – Diagnóstico:</strong> cuantifique el costo de la brecha operativa. Puntúe los factores sistémicos con el productor.</li>
+  <li><strong>Pestaña 8 – Simulador:</strong> simule los escenarios más relevantes para la finca (el riesgo de precio más inminente, la palanca de mejora más accesible).</li>
+  <li><strong>Pestaña 9 – Planificación:</strong> defina la meta SMART y muestre el VPN del plan de mejora. Redacte el plan de acción a corto y mediano plazo.</li>
+  <li><strong>Exportar:</strong> guarde los datos en JSON para la siguiente visita. Exporte el CSV de indicadores para el informe técnico.</li>
+</ol>
+
+<div class="peligro">
+<strong>Error frecuente en visitas de campo:</strong> confundir el precio que aparece en la aplicación (el que paga el comprador por litro en finca) con el precio que aparece en la factura de venta, que puede incluir bonificaciones o descuentos por calidad. Use siempre el precio <em>efectivamente recibido</em>, no el precio de lista.
+</div>
+</section>
+
+</main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════════════ -->
+<footer>
+  <p><strong style="color:#fff">Sistema de Gestión Estratégica Lechera · Manual de Usuario</strong></p>
+  <p style="margin-top:0.4rem">José Fernando Guarín Montoya, Ph.D. · Grupo Gamma · Universidad de Antioquia</p>
+  <p style="margin-top:0.4rem">Referencia: Cerón-Muñoz y Guarín (2025) · <em>Gestión estratégica en predios lecheros</em></p>
+</footer>
+
+</body>
+</html>
