@@ -2,6 +2,7 @@
 Sistema de Gestión Estratégica Lechera
 
 https://josefernandoguarin.github.io/GestEstrat/
+https://josefernandoguarin.github.io/GestEstrat/manual.html
 
 Sistema de Gestión Estratégica Lechera con IA
 Características Principales
