@@ -67,11 +67,6 @@ Inversiones - Distribución y análisis ROI
 Resultados - Dashboard financiero completo
 Análisis IA - Interpretaciones y recomendaciones inteligentes
 
-🔥 Próximos Pasos Sugeridos
-¿Te gustaría que agregue alguna funcionalidad específica como:
 
-Exportación de reportes en PDF
-Gráficas más avanzadas (Chart.js)
-Comparaciones históricas
-Integración con bases de datos
-Más escenarios de simulación
+
+
